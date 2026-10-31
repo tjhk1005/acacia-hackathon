@@ -25,12 +25,12 @@ The website preview currently runs without AI keys or paid APIs. Backend chat re
 
 The product should feel like a guide, not a long form or a gallery with no next step. Couples should not need to know wedding terminology before they can begin.
 
-1. **Understand the couple.** Collect names, approximate guest count, location, date flexibility and total budget. Ask about cultural traditions, dietary needs, accessibility, non-negotiables and existing bookings. Suggested field values are not confirmed preferences until the couple accepts them.
+1. **Start lightly.** Make the starting experience a visual personality quiz. Collect practical wedding details, constraints and priorities in a separate planning workspace afterwards, so the first interaction is not overwhelming. Suggested field values are not confirmed preferences until the couple accepts them.
 2. **Start from a feeling.** Let the couple describe their day in their own words, such as “intimate, warm candlelight, dinner with our favourite people.” Use actual reference images to make those words easier to react to.
-3. **Choose a broad setting.** Begin with four familiar starting points: Garden, Beach, Classic and Modern. Offer other settings when the couple wants alternatives. The current catalogue also includes Rustic, Bohemian, Tropical and Intimate dinner.
-4. **Refine one layer deeper.** Show four specific directions within the chosen setting. For example, Garden can become English rose garden, Wildflower gathering, Tropical garden or Long-table garden supper. A refresh must present meaningfully different options, not the same images reordered or recoloured.
-5. **Turn the direction into decisions.** Help the couple specify flowers and textures, lighting and atmosphere, table layout and gathering style. Suggestions are editable. “We need help deciding” is a valid answer.
-6. **Capture priorities.** Establish what matters most, what the couple dislikes, what can change and what must stay. Produce a structured wedding brief that remains editable throughout planning.
+3. **Explore wedding worlds.** Offer four starting points at a time, with continuing rerolls. Use familiar ideas such as Garden, Beach, Classic and Modern alongside more specific possibilities. Couples can keep several worlds and blend them.
+4. **Build a layered signature.** Let the couple keep multiple overall directions, colour stories, indoor/outdoor possibilities, natural or architectural textures, and minimal or abundant styles. Rerolls should change the examples meaningfully while preserving what the couple already kept.
+5. **Reveal the wedding personality.** Bring the chosen feelings, worlds and preferences together with an image carousel for that mix. Keep the result revisable. Detailed flower, lighting and table decisions belong in the later planning workspace.
+6. **Plan afterwards.** In a separate task, establish guest count, total budget, dates, priorities, dislikes, practical constraints and decor decisions. Produce a structured brief that remains editable throughout planning.
 7. **Source and contact vendors.** With the permissions defined in the team's guardrails, request availability, itemised quotes, inclusions, exclusions, setup requirements and missing details. WhatsApp is the intended vendor channel.
 8. **Compare feasible choices.** Present the top few vendor choices and aim for three complete wedding options: best value, closest fit to the couple's vision, and best balance. Explain the trade-offs and any uncertainty. If three feasible options do not exist, say so and ask which constraint could change.
 9. **Coordinate the plan.** Create tasks, identify dependencies, follow up on unanswered questions, track changes and keep affected people informed within the permitted scope.
@@ -165,22 +165,21 @@ Decisions still to settle:
 - Authentication, couple/collaborator access, persistent shared storage and deployment of the backend.
 - WhatsApp access and pricing. Do not assume arbitrary live vendor messaging will be free; a simulated inbox or manual draft handoff is sufficient until the integration is verified.
 
-## Current website details
+## Current website: the wedding personality quiz
 
-The frontend implements the visual discovery portion of the journey:
+The starting experience is a short visual personality quiz, with three chapters: **Your feeling → Your world → Your signature**. It is meant to establish the couple's taste, not force an entire wedding plan during onboarding.
 
-- Wedding essentials, input validation and date flexibility.
-- Eight broad settings and eight directions per setting; four choices at a time.
-- Refresh replaces all four images and decor plans. After all eight options are explored, users can explicitly revisit earlier ideas or change their setting; the interface does not silently recycle rejected options.
-- 29 locally served reference photos with photographer credits and Pinterest links.
-- Editable flowers, lighting and table preferences, plus up to three priorities.
-- A wedding vision summary, practical planning questions and a downloadable JSON brief.
-- Browser-local persistence, editing and migration of the original `coastal` style to `beach`.
-- Responsive desktop and mobile layouts.
+- Feelings, wedding worlds and every signature category have a continuing reroll button with no eight-option stop. Each batch has four ideas. Kept choices persist across rerolls and categories.
+- The signature chapter supports multiple overall directions, colour stories, indoor/outdoor settings, nature/texture preferences, and levels of simplicity or abundance. Couples can keep several alternatives instead of being forced into one theme.
+- Public Pinterest reference images are linked directly to their Pins; local reference photographs remain available as fallbacks. Clicking an image opens its Pin or a matching Pinterest search, while a separate Keep button saves the idea. There are no visible photo-credit rows on the quiz cards; source metadata remains in the repository.
+- New ideas are composed from mood, setting, palette and experience dimensions. This allows continuous concept exploration, but does **not** mean the app has an infinite collection of unique photographs or a public, unlimited Pinterest search API.
+- Optional live image search is implemented behind `/api/inspiration`. It requires `PINTEREST_ACCESS_TOKEN` for an app approved for Pinterest partner search. The quiz works without it using linked public Pinterest references and local images. A normal Pinterest login or an ordinary token does not guarantee partner-search access. Rate-limited or unavailable searches fall back to references rather than being presented as fresh results.
+- The wedding vision includes an image carousel and thumbnails, matched to the combined profile. Explicit indoor/outdoor, nature and minimal/abundant selections filter the reference pool. Multiple alternatives preserve flexibility. If no close reference fits, the app offers a Pinterest search rather than filling the carousel with unrelated images.
+- Guest count, budget, date, flowers, lighting, table layout and planning priorities live in a separate **Plan the details** workspace after the quiz. They are not required to reveal a wedding personality.
+- The version-3 personality and partial planning details save in the current browser and can be downloaded as JSON. Earlier wedding details are preserved when moving to the new quiz.
+- Desktop and mobile layouts are supported. Tests cover 100 consecutive rerolls in each category, retained selections, profile parsing, image matching and Pinterest response validation.
 
-The catalogue and feeling matching are curated. They are not a live Pinterest feed, a measured popularity ranking or a connected AI recommendation service. Reference images are inspiration, not vendor listings, quotes, confirmed availability or proof that a design fits a budget.
-
-No user account login, live chatbot, vendor messaging, booking or AI inference is connected in the frontend today. Data saved in one browser is not automatically shared with the backend or another device.
+No account authentication, live chatbot, vendor messaging, booking or AI inference is connected in the website today. The initial experience is sometimes referred to as the login stage in planning conversations, but the quiz does not create or authenticate a user account. Browser data is not automatically shared with the backend or another device. Images are inspiration, not quotes, availability or confirmed bookings.
 
 ## Integration gap to resolve next
 
@@ -209,7 +208,7 @@ pnpm test
 pnpm build
 ```
 
-The current frontend requires no environment variables or API keys. Google Fonts is optional, with system fallbacks. Photo sources and licensing are listed in [the frontend's photo credits](https://github.com/tjhk1005/acacia-hackathon/blob/codex/wedding-planner-plan/public/inspiration/README.md).
+No environment variables are required for the key-free quiz. To enable live Pinterest partner search, copy `.env.example` to `.env.local` and add the approved app token there, or set `PINTEREST_ACCESS_TOKEN` in Vercel. Never commit the token. Google Fonts is optional, with system fallbacks. Photo sources and licensing are listed in [the frontend's photo credits](https://github.com/tjhk1005/acacia-hackathon/blob/codex/wedding-planner-plan/public/inspiration/README.md).
 
 For backend setup, see [backend/README.md](https://github.com/tjhk1005/acacia-hackathon/blob/codex/wedding-planning-backend/backend/README.md) and [backend/API.md](https://github.com/tjhk1005/acacia-hackathon/blob/codex/wedding-planning-backend/backend/API.md). The backend is a separate service; deploying the frontend does not deploy it.
 
@@ -217,20 +216,24 @@ For backend setup, see [backend/README.md](https://github.com/tjhk1005/acacia-ha
 
 | Website path | Responsibility |
 | --- | --- |
-| `app/page.tsx` | Guided onboarding, navigation, selections, browser persistence and final vision. |
-| `app/globals.css` | Website styling and responsive layouts. |
+| `app/page.tsx` | Three-chapter quiz, kept choices, browser persistence, vision and separate planning tasks. |
+| `app/globals.css`, `app/personality.css` | Shared styling and responsive personality/workspace layouts. |
 | `app/layout.tsx` | Root layout and metadata. |
-| `components/inspiration-card.tsx` | Selectable photo cards, attribution and Pinterest links. |
-| `lib/inspiration.ts` | Settings, directions, decor suggestions, photo metadata and feeling matching. |
+| `components/discovery-card.tsx` | Pinterest-linked image cards, independent Keep buttons and optional live image loading. |
+| `components/vision-carousel.tsx` | Profile-matched carousel, thumbnails and keyboard navigation. |
+| `lib/personality.ts` | Personality model, continuing idea generation, multi-selection, matching and persisted-profile validation. |
+| `lib/visual-references.ts` | Tagged public Pinterest references and local photo fallbacks. |
+| `lib/pinterest.ts`, `app/api/inspiration/route.ts` | Optional authenticated Pinterest partner-search adapter; no live search without approved access. |
+| `lib/inspiration.ts` | Legacy catalogue/photo metadata and Pinterest link helpers; it no longer limits the quiz to eight choices. |
 | `lib/wedding.ts` | Website brief model, compatibility migration and helpers. |
 | `public/inspiration/` | Local reference photography and source credits. |
-| `tests/inspiration.test.mjs` | Catalogue, non-repetition, local-image and feeling-matching checks. |
+| `tests/inspiration.test.mjs`, `tests/personality.test.mjs` | Legacy compatibility checks, continuing rerolls, kept choices, moodboard filtering, image integrity and provider-response validation. |
 
 Before editing a branch, read its `AGENTS.md` and relevant documentation. Keep working frontend behavior, original image attribution, browser-brief compatibility and explicit unknown/confirmed states intact. Do not introduce a second source of truth for preferences in the chatbot. Keep keys server-side and out of Git. Coordinate shared schema changes before changing both frontend and backend independently.
 
 ## Deployment and cost target
 
-Vercel is the intended website host. When importing the frontend branch, select Next.js and the repository root. No environment variables are needed for the current preview. This README update does not configure a deployment.
+Vercel is the intended website host. When importing the frontend branch, select Next.js and the repository root. No environment variables are needed for reference mode. Live Pinterest search uses the optional server-side `PINTEREST_ACCESS_TOKEN`. This update does not configure a deployment.
 
 The project targets no additional spending for the hackathon demo. The team has US$50 in Claude API credits, but those credits are finite, not a permanent free tier. Keep the AI provider configurable, bound model calls and tool iterations, record actual usage, and retain a clearly labelled simulated mode. Confirm any external service's limits and pricing before making it a runtime dependency.
 
