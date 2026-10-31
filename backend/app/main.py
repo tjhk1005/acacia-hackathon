@@ -1,3 +1,6 @@
+import asyncio
+import logging
+from contextlib import suppress
 import hashlib
 import os
 from contextlib import asynccontextmanager
@@ -14,6 +17,7 @@ from pydantic import ValidationError
 
 from .agents import configured_agent
 from .coordinator import coordinator_router
+from .scheduling import scheduler_tick
 from .models import (ChatRequest, ChatResponse, ConfirmWedding, CreateResponse,
                      CreateWedding, MessagesResponse, UpdateWedding, WeddingBrief, WeddingResponse)
 from .planning import merge_brief, missing_fields, serialize_wedding
@@ -33,11 +37,25 @@ def create_app(database_path=None, agent=None):
         path = ROOT / path
     store = Store(path)
 
+    async def reminder_worker():
+        while True:
+            try:
+                await asyncio.to_thread(scheduler_tick, store)
+            except Exception:
+                logging.getLogger(__name__).exception('Reminder scheduler tick failed; retrying next tick')
+            await asyncio.sleep(15)
+
     @asynccontextmanager
     async def lifespan(app):
-        yield
-        if owned_agent and agent is not None:
-            await agent.close()
+        worker = asyncio.create_task(reminder_worker())
+        try:
+            yield
+        finally:
+            worker.cancel()
+            with suppress(asyncio.CancelledError):
+                await worker
+            if owned_agent and agent is not None:
+                await agent.close()
 
     app = FastAPI(title="Ever After Planning API", version="0.2.0", lifespan=lifespan)
     app.add_middleware(

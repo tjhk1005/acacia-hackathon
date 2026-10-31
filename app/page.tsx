@@ -151,6 +151,7 @@ export default function Home() {
         <button className={`nav-item ${view==='vision'?'active':''}`} disabled={!profile.complete} onClick={()=>{setView('vision');setNotice('');setError('');}}><LayoutDashboard size={18}/>Your wedding vision</button>
         <button className={`nav-item ${view==='details'?'active':''}`} disabled={!profile.complete} onClick={openDetails}><ClipboardList size={18}/>Plan the details<span className="nav-hint">Later</span></button>
         <Link className="nav-item" href="/planner"><Sparkles size={18}/>Your planner<span className="nav-hint">Chat</span></Link>
+        <Link className="nav-item" href="/coordinator"><Users size={18}/>Coordinator<span className="nav-hint">Tasks & reminders</span></Link>
         <Link className="nav-item" href="/vendors"><Users size={18}/>Your vendors<span className="nav-hint">Compare</span></Link>
       </nav>
       <div className="sidebar-note"><Leaf size={22}/><p>There’s no one<br/>kind of beautiful.<br/>There’s your kind.</p><span>Keep what feels like the two of you.</span></div>

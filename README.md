@@ -6,6 +6,10 @@ Built for the Acacia hackathon in Singapore. The aim is to make the administrati
 
 This README describes both the intended product and the confirmed four-agent design. It also identifies what is implemented today. **A planned feature in this document is not evidence that the feature already works.**
 
+## Vendor coordinator: research and user decisions
+
+The coordinator at `/coordinator` prepares vendor enquiries about availability, stock/capacity, prices, packages and conditions, retains original replies, extracts source-backed facts and produces an unranked side-by-side report. Missing information remains unknown. The user selects the vendor, date and options, then handles final booking or purchase confirmation and payment directly. Recording a preference is not a booking. See [the vendor research workflow](backend/VENDOR_RESEARCH.md).
+
 ## Start here: current implementation
 
 The latest personality quiz, planner chat, catering discovery and backend are integrated in this repository. Use `main` for the current combined application. Older feature branches remain historical work; do not restore their older onboarding over `app/page.tsx`.
@@ -15,8 +19,8 @@ The latest personality quiz, planner chat, catering discovery and backend are in
 | Personality quiz | Three chapters, continuing rerolls, multiple kept themes and signature preferences, Pinterest references and a matched carousel. |
 | Planner chat / Agent 1 | `/planner` imports the full quiz and planning details, stores the wedding and chat in the backend, and supports Claude or OpenAI. Requires a running backend; AI chat needs its configured key. |
 | Vendor comparison | `/vendors` uses the same saved wedding and displays the full personality. Six fictional catering packages, deterministic estimates and saved comparisons; aesthetic fit and real availability are not scored. |
-| Vendor communication / Agent 2 | Enquiry and reminder drafts, manually recorded replies, and approved simulated deliveries in the backend coordinator. No real WhatsApp or Telegram transport. |
-| Overall coordination / Agent 4 | Rule-based enquiry/reminder generation when manually run. Background scheduling, dependency resolution and autonomous conflict handling remain planned. |
+| Vendor communication / Agent 2 | Reviewed research enquiries and follow-up drafts, recorded vendor replies, and manual WhatsApp group sharing. No live WhatsApp or Telegram API transport. |
+| Overall coordination / Agent 4 | Persistent checklist and automatic one-day task reminders; cancellations on completion. Delivery remains simulated or manual WhatsApp sharing. Vendor decisions, booking confirmation and payment belong to the user. |
 | Four-agent workflow | Roles are confirmed below. Real quote extraction, complete wedding-plan comparison and automated handoffs are not complete. |
 
 The quiz and reference images work without paid APIs. Backend manual editing, sample catering comparison and simulated coordination also work without an AI key. Claude/OpenAI calls require the selected provider's key and use its credits. Live provider quality and billing must be checked separately from mocked tests.
@@ -80,8 +84,8 @@ These are four logical agent roles. They do not need four separate servers, four
 - Distinguish estimated prices, vendor quotes, date availability, provisional holds and confirmed bookings.
 - Compare inclusions, exclusions, taxes, service charges, minimum spends, capacity, timing, quote expiry and practical requirements.
 - Identify missing information and request follow-up through Agent 4 and Agent 2.
-- Filter against hard constraints first, then rank feasible candidates against the couple's preferences.
-- Prepare the top few choices and inputs for the three overall wedding options.
+- Present vendor-stated facts and missing information without ranking vendors or choosing a winner.
+- Let the user review all options and record their own preferred vendor, date and package.
 
 **Produces:** normalised vendor records, missing-information questions, feasible shortlists and comparison explanations.
 

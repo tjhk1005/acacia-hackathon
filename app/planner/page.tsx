@@ -143,7 +143,7 @@ export default function PlannerPage() {
   const visibleQuestions = questions.filter(question => !messages.at(-1)?.content.includes(question));
 
   return <div className={css.shell}>
-    <header className={css.header}><Link href="/" className={css.brand}><Flower2 size={25} />ever after<span>.</span></Link><nav className={css.pageNav}><Link href="/" className={css.back}><ArrowLeft size={15} />Your quiz & vision</Link><Link href="/vendors" className={css.back}>Your vendors<ArrowRight size={15} /></Link></nav></header>
+    <header className={css.header}><Link href="/" className={css.brand}><Flower2 size={25} />ever after<span>.</span></Link><nav className={css.pageNav}><Link href="/coordinator" className={css.back}>Coordinator</Link><Link href="/" className={css.back}><ArrowLeft size={15} />Your quiz & vision</Link><Link href="/vendors" className={css.back}>Your vendors<ArrowRight size={15} /></Link></nav></header>
     <main className={css.main}>
       <div className={css.heading}><span className={css.eyebrow}><Sparkles size={14} /> A LITTLE CLARITY, TOGETHER</span><h1>Let’s find <em>your kind of day.</em></h1><p>Talk through what matters. Your planner keeps the details beside you, ready to refine.</p></div>
       {notice && <div className={css.notice} role="status">{notice}</div>}

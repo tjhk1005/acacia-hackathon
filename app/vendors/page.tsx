@@ -112,7 +112,7 @@ export default function VendorsPage() {
   }
 
   return <div className={css.shell}>
-    <header className={css.header}><Link href="/" className={css.brand}><Flower2 size={26} />ever after<span>.</span></Link><nav aria-label="Wedding navigation"><Link href="/"><ArrowLeft size={14} />Your vision</Link><Link href="/planner"><MessageCircle size={15} />Your planner</Link><span aria-current="page">Your vendors</span></nav></header>
+    <header className={css.header}><Link href="/" className={css.brand}><Flower2 size={26} />ever after<span>.</span></Link><nav aria-label="Wedding navigation"><Link href="/coordinator">Coordinator</Link><Link href="/"><ArrowLeft size={14} />Your vision</Link><Link href="/planner"><MessageCircle size={15} />Your planner</Link><span aria-current="page">Your vendors</span></nav></header>
     <main className={css.main}>
       <div className={css.heading}><div><span className={css.eyebrow}><Leaf size={14} /> THE PEOPLE WHO BRING IT TO LIFE</span><h1>A table for <em>your kind of celebration.</em></h1><p>Start with catering. Explore the fit, understand the numbers, and keep a few possibilities close.</p></div>{state && <button className={css.refresh} disabled={busy} onClick={() => session && void perform(async () => { accept(await planningRequest<VendorState>(`/api/weddings/${session.id}/vendors`, session)); })}><RefreshCw size={15} />Refresh saved matches</button>}</div>
       {error && <div className={css.error} role="alert">{error}</div>}
