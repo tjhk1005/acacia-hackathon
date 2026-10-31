@@ -244,6 +244,12 @@ Before editing a branch, read its `AGENTS.md` and relevant documentation. Keep w
 
 ## Deployment and cost target
 
+The current Vercel demo uses an owner-approved temporary HTTPS gateway to the
+local backend when `PLANNING_API_URL` is missing or still points to loopback.
+The laptop must remain awake and the gateway expires after 24 hours. This is a
+hackathon demo connection, not permanent hosting. See [deployment details](deployment/README.md)
+for request limits, restart instructions and replacing it with a durable backend.
+
 Vercel is the intended website host. When importing the frontend branch, select Next.js and the repository root. No environment variables are needed for reference mode. Live Pinterest search uses the optional server-side `PINTEREST_ACCESS_TOKEN`. Set `PLANNING_API_URL` to a reachable backend for planner/vendor functionality. This update does not configure a deployment.
 
 The project targets no additional spending for the hackathon demo. The team has US$50 in Claude API credits, but those credits are finite, not a permanent free tier. Keep the AI provider configurable, bound model calls and tool iterations, record actual usage, and retain a clearly labelled simulated mode. Confirm any external service's limits and pricing before making it a runtime dependency.

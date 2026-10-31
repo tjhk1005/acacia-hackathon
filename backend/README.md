@@ -76,6 +76,10 @@ with the team's API key; simulated responses do not establish extraction quality
 
 ## Hosting and data
 
+For the current approved temporary hackathon connection, see
+[deployment/README.md](../deployment/README.md). It uses a restricted, rate-limited
+gateway in front of this local service; the underlying service stays on loopback.
+
 Run this service separately from the frontend with a persistent disk for SQLite. The database path
 is relative to `backend/` unless absolute. A Vercel frontend can call a hosted backend over HTTPS;
 do not put SQLite on Vercel's temporary filesystem. One backend instance is the initial target.
