@@ -27,8 +27,8 @@ pages, OpenAPI, the standalone coordinator and messaging webhooks. Wedding acces
 tokens are forwarded unchanged; the existing backend checks them before accessing
 saved records. Incoming cookies and unrelated credentials are not forwarded.
 Public calls have a 1 MB body limit and global limits of 600 requests/minute,
-120 writes/minute, 60 wedding creations/hour and 30 AI requests/hour. AI calls run
-one at a time. Rejected wedding authentication does not consume the AI budget.
+120 writes/minute, 60 wedding creations/hour and 30 AI requests/hour. Up to three
+AI calls can run concurrently. Rejected wedding authentication does not consume the AI budget.
 Rate-limit responses ask users to retry later. AI keys remain in `backend/.env`.
 WhatsApp remains locked in piloting mode.
 

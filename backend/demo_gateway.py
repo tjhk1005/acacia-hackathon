@@ -33,7 +33,7 @@ def create_gateway(client=None, clock=time.monotonic, lifetime=86400, chat_limit
     @asynccontextmanager
     async def lifespan(app):
         app.state.client=client or httpx.AsyncClient(timeout=38,follow_redirects=False)
-        app.state.ai_lock=asyncio.Lock()
+        app.state.ai_slots=asyncio.Semaphore(3)
         try:
             yield
         finally:
@@ -75,11 +75,13 @@ def create_gateway(client=None, clock=time.monotonic, lifetime=86400, chat_limit
                 headers={'Content-Type':result.headers.get('content-type','application/json'),'Cache-Control':'no-store'})
 
         if ai_call:
-            # Only one model request runs at a time; failed authentication does not
+            # Three demo users can work at once; failed authentication does not
             # consume the model budget. No token, body or credential is logged.
-            if app.state.ai_lock.locked():
+            try:
+                await asyncio.wait_for(app.state.ai_slots.acquire(),timeout=1)
+            except asyncio.TimeoutError:
                 raise HTTPException(429,'The demo AI is answering another request. Please try again shortly.',headers={'Retry-After':'5'})
-            async with app.state.ai_lock:
+            try:
                 identity='http://127.0.0.1:8000/'+'/'.join(path.split('/')[:3])
                 try:
                     check=await app.state.client.get(identity,headers=headers,timeout=5)
@@ -89,6 +91,8 @@ def create_gateway(client=None, clock=time.monotonic, lifetime=86400, chat_limit
                     return Response(content=check.content,status_code=check.status_code,media_type='application/json')
                 take('ai')
                 return await send()
+            finally:
+                app.state.ai_slots.release()
         return await send()
 
     return app

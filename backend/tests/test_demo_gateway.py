@@ -1,4 +1,6 @@
 import httpx
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from fastapi.testclient import TestClient
 
 from demo_gateway import create_gateway
@@ -53,3 +55,14 @@ def test_gateway_health_marks_temporary_hosting_and_rejects_large_bodies():
         assert health['status']=='ok' and health['backend_hosting']=='temporary_demo'
         assert 'demo_expires_at' in health
         assert c.post('/api/weddings',content=b'x'*1_000_001).status_code==413
+
+
+def test_three_teammates_can_send_demo_chat_requests_concurrently():
+    async def upstream(request):
+        await asyncio.sleep(.1)
+        return httpx.Response(200,json={'status':'ok'})
+    with TestClient(create_gateway(httpx.AsyncClient(transport=httpx.MockTransport(upstream)),chat_limit=3)) as c:
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            responses=list(pool.map(lambda _:c.post(WEDDING+'/chat',json={}).status_code,range(3)))
+        assert responses==[200,200,200]
+        assert c.post(WEDDING+'/chat',json={}).status_code==429
