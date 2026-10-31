@@ -8,18 +8,18 @@ This README describes both the intended product and the confirmed four-agent des
 
 ## Start here: current implementation
 
-Implementation currently lives on separate branches. `main` is the project documentation landing point; the website and backend have not yet been integrated there.
+The latest personality quiz, planner chat, catering discovery and backend are integrated in this repository. Use `main` for the current combined application. Older feature branches remain historical work; do not restore their older onboarding over `app/page.tsx`.
 
-| Area | Location | Current state |
-| --- | --- | --- |
-| Website | [`codex/wedding-planner-plan`](https://github.com/tjhk1005/acacia-hackathon/tree/codex/wedding-planner-plan) | Working Next.js onboarding and visual discovery frontend. |
-| Backend prototype | [`codex/wedding-planning-backend`](https://github.com/tjhk1005/acacia-hackathon/tree/codex/wedding-planning-backend/backend) | Separate FastAPI service with persistent briefs, revisions, confirmation and a preferences-chat endpoint. Read its README and API documentation before integrating. |
-| Four-agent workflow | Defined below | Confirmed product architecture; all four agents are not implemented or connected yet. |
-| Live website chatbot | Planned | The backend chat endpoint is not connected to the website yet. |
-| WhatsApp vendor communication | Planned | No WhatsApp integration or live vendor sending is implemented. |
-| Vendor comparison and autonomous coordination | Planned | No completed quote-comparison or four-agent coordination workflow yet. |
+| Area | Current state |
+| --- | --- |
+| Personality quiz | Three chapters, continuing rerolls, multiple kept themes and signature preferences, Pinterest references and a matched carousel. |
+| Planner chat / Agent 1 | `/planner` imports the full quiz and planning details, stores the wedding and chat in the backend, and supports Claude or OpenAI. Requires a running backend; AI chat needs its configured key. |
+| Vendor comparison | `/vendors` uses the same saved wedding and displays the full personality. Six fictional catering packages, deterministic estimates and saved comparisons; aesthetic fit and real availability are not scored. |
+| Vendor communication / Agent 2 | Enquiry and reminder drafts, manually recorded replies, and approved simulated deliveries in the backend coordinator. No real WhatsApp or Telegram transport. |
+| Overall coordination / Agent 4 | Rule-based enquiry/reminder generation when manually run. Background scheduling, dependency resolution and autonomous conflict handling remain planned. |
+| Four-agent workflow | Roles are confirmed below. Real quote extraction, complete wedding-plan comparison and automated handoffs are not complete. |
 
-The website preview currently runs without AI keys or paid APIs. Backend chat requires its configured AI provider. Do not describe the whole future product as free or operational just because the frontend preview is.
+The quiz and reference images work without paid APIs. Backend manual editing, sample catering comparison and simulated coordination also work without an AI key. Claude/OpenAI calls require the selected provider's key and use its credits. Live provider quality and billing must be checked separately from mocked tests.
 
 ## What the website should do
 
@@ -179,23 +179,25 @@ The starting experience is a short visual personality quiz, with three chapters:
 - The version-3 personality and partial planning details save in the current browser and can be downloaded as JSON. Earlier wedding details are preserved when moving to the new quiz.
 - Desktop and mobile layouts are supported. Tests cover 100 consecutive rerolls in each category, retained selections, profile parsing, image matching and Pinterest response validation.
 
-No account authentication, live chatbot, vendor messaging, booking or AI inference is connected in the website today. The initial experience is sometimes referred to as the login stage in planning conversations, but the quiz does not create or authenticate a user account. Browser data is not automatically shared with the backend or another device. Images are inspiration, not quotes, availability or confirmed bookings.
+The quiz does not create or authenticate an account. `/planner` provides the connected preferences chatbot when the backend and selected AI provider are configured. Quiz drafts stay local until explicitly imported or synced; the backend then holds the shared wedding. There are no live vendor messages or bookings. Images are inspiration, not quotes, availability or confirmed bookings.
 
-## Integration gap to resolve next
+## Shared quiz contract
 
-The backend prototype's documented brief still uses the original three style IDs (`garden`, `modern`, `coastal`). The website now uses eight (`garden`, `beach`, `classic`, `modern`, `rustic`, `bohemian`, `tropical`, `intimate`) and adds `direction` plus `decor.florals`, `decor.lighting` and `decor.tables`.
+`WeddingBrief.personality` is the version-3 quiz profile: `words`, multiple `feelings`, multiple `worlds`, and `signatures` for directions, palettes, setting, nature and simplicity. Every kept idea retains its ID, title, description, tags, palette, image-reference ID and Pinterest search phrase. Do not collapse this profile to the old single `style` or `direction` fields. Those fields remain only for earlier brief compatibility. A shared example is in [tests/fixtures/personality-v3.json](tests/fixtures/personality-v3.json).
 
-**Reconcile the backend models, agent extraction schema, validation, storage and API examples before connecting them.** Preserve the existing string-valued `guests` and `budget`, camelCase `flexibleDate`, explicit revision checks and distinction between draft and confirmed preferences. Budget means the total wedding budget in SGD; category allocations must not overwrite it.
+The quiz writes `ever-after-personality-v3` and a compatible brief mirror. Planner and vendor pages read v3 first. Explicitly syncing a differing draft uses the current server revision; chat results update both local records without discarding reroll progress. The planner shows all kept alternatives, and vendor comparisons block shortlist changes when local quiz/details need syncing.
 
-Do not silently drop new visual preferences or assume the older backend can accept the current brief unchanged. Inspect the actual branch code and agree a versioned contract before implementation.
+Backend validation, SQLite storage and API responses preserve the entire personality. Both AI adapters receive it as planning context. AI extraction can update practical details, keywords and notes, but cannot replace the kept quiz arrays; refining those choices belongs in the quiz. Preferences are not proof of feasibility or automatically hard constraints. Revision conflicts preserve the user's pending work and require review.
+
+Keep string-valued `guests` and `budget`, camelCase `flexibleDate`, explicit revision checks and the distinction between draft and confirmed briefs. Budget means the total wedding budget in SGD; catering allocations remain separate. The sample vendor catalogue does not yet rank aesthetics from the personality.
 
 ## Run the website locally
 
-Check out the website branch; these commands cannot run from the documentation-only `main` checkout yet.
+Check out the integrated application:
 
 ```sh
 git fetch origin
-git switch codex/wedding-planner-plan
+git switch main
 pnpm install --frozen-lockfile
 pnpm dev
 ```
@@ -210,7 +212,7 @@ pnpm build
 
 No environment variables are required for the key-free quiz. To enable live Pinterest partner search, copy `.env.example` to `.env.local` and add the approved app token there, or set `PINTEREST_ACCESS_TOKEN` in Vercel. Never commit the token. Google Fonts is optional, with system fallbacks. Photo sources and licensing are listed in [the frontend's photo credits](https://github.com/tjhk1005/acacia-hackathon/blob/codex/wedding-planner-plan/public/inspiration/README.md).
 
-For backend setup, see [backend/README.md](https://github.com/tjhk1005/acacia-hackathon/blob/codex/wedding-planning-backend/backend/README.md) and [backend/API.md](https://github.com/tjhk1005/acacia-hackathon/blob/codex/wedding-planning-backend/backend/API.md). The backend is a separate service; deploying the frontend does not deploy it.
+For chat, saved shared weddings and sample vendor comparison, run the backend as described in [backend/README.md](backend/README.md). Next.js proxies `/planning-api/*` to `http://127.0.0.1:8000` locally. Set server-side `PLANNING_API_URL` in `.env.local` or Vercel to use a hosted backend, then restart/rebuild Next.js. Configure Claude using `AI_PROVIDER=anthropic`, `ANTHROPIC_API_KEY` and an account-supported `ANTHROPIC_MODEL` in `backend/.env`. Never place AI keys in `NEXT_PUBLIC_` variables. See [backend/API.md](backend/API.md) for errors, revisions and session tokens. Deploying the frontend does not deploy the backend.
 
 ## Code map for developers and AI assistants
 
@@ -225,7 +227,11 @@ For backend setup, see [backend/README.md](https://github.com/tjhk1005/acacia-ha
 | `lib/visual-references.ts` | Tagged public Pinterest references and local photo fallbacks. |
 | `lib/pinterest.ts`, `app/api/inspiration/route.ts` | Optional authenticated Pinterest partner-search adapter; no live search without approved access. |
 | `lib/inspiration.ts` | Legacy catalogue/photo metadata and Pinterest link helpers; it no longer limits the quiz to eight choices. |
-| `lib/wedding.ts` | Website brief model, compatibility migration and helpers. |
+| `lib/wedding.ts`, `lib/wedding-storage.ts` | Shared brief with full personality, legacy migration, v3 draft imports and server-to-browser synchronisation. |
+| `app/planner/`, `lib/planning-api.ts` | Preferences chat, shared brief, conflict review and backend requests. |
+| `app/vendors/`, `lib/vendors.ts` | Fictional catering filters, saved comparison and quiz context. |
+| `components/personality-summary.tsx` | Shared display of every kept quiz category in planner and vendor pages. |
+| `backend/` | Validated wedding persistence, Claude/OpenAI adapters, sample vendor comparison and simulated coordination. |
 | `public/inspiration/` | Local reference photography and source credits. |
 | `tests/inspiration.test.mjs`, `tests/personality.test.mjs` | Legacy compatibility checks, continuing rerolls, kept choices, moodboard filtering, image integrity and provider-response validation. |
 
@@ -233,7 +239,7 @@ Before editing a branch, read its `AGENTS.md` and relevant documentation. Keep w
 
 ## Deployment and cost target
 
-Vercel is the intended website host. When importing the frontend branch, select Next.js and the repository root. No environment variables are needed for reference mode. Live Pinterest search uses the optional server-side `PINTEREST_ACCESS_TOKEN`. This update does not configure a deployment.
+Vercel is the intended website host. When importing the frontend branch, select Next.js and the repository root. No environment variables are needed for reference mode. Live Pinterest search uses the optional server-side `PINTEREST_ACCESS_TOKEN`. Set `PLANNING_API_URL` to a reachable backend for planner/vendor functionality. This update does not configure a deployment.
 
 The project targets no additional spending for the hackathon demo. The team has US$50 in Claude API credits, but those credits are finite, not a permanent free tier. Keep the AI provider configurable, bound model calls and tool iterations, record actual usage, and retain a clearly labelled simulated mode. Confirm any external service's limits and pricing before making it a runtime dependency.
 
@@ -241,9 +247,9 @@ The existing backend prototype uses SQLite and requires persistent storage; do n
 
 ## Next milestones
 
-1. Add the team's exact guardrails document and resolve the shared brief/API mismatch.
-2. Connect onboarding and live user chat to Agent 1 and one persistent wedding record.
-3. Implement Agent 4's task workflow and Agent 3's quote/availability records with simulated vendor replies.
+1. Add the team's exact guardrails document before real external actions.
+2. Verify the integrated quiz → planner → saved brief → sample comparison loop with the team's configured Claude account.
+3. Connect shortlists to enquiries, evidence-backed quote extraction and Agent 4's dependency/conflict workflow.
 4. Connect Agent 2 to the chosen WhatsApp transport after access, permissions and costs are confirmed.
 5. Demonstrate a complete loop: feeling → specific preferences → vendor evidence → feasible options → one vendor conflict handled and explained to the couple.
 

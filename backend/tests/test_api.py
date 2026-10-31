@@ -3,6 +3,7 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 from openai import APIConnectionError, APITimeoutError
+from anthropic import APIConnectionError as ClaudeConnectionError, APITimeoutError as ClaudeTimeoutError
 import httpx
 
 from app.main import create_app
@@ -129,6 +130,7 @@ def test_token_cannot_access_another_wedding(setup):
 
 def test_unconfigured_ai_keeps_manual_editing(tmp_path, monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     with TestClient(create_app(tmp_path / "no-key.sqlite3")) as client:
         assert client.get("/health").json()["ai_configured"] is False
         created = client.post("/api/weddings", json={}).json()
@@ -142,7 +144,9 @@ def test_unconfigured_ai_keeps_manual_editing(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize("error,expected", [(ValueError("invalid"), 502),
     (APITimeoutError(request=httpx.Request("POST", "https://example.test")), 504),
-    (APIConnectionError(request=httpx.Request("POST", "https://example.test")), 502)])
+    (APIConnectionError(request=httpx.Request("POST", "https://example.test")), 502),
+    (ClaudeTimeoutError(request=httpx.Request("POST", "https://example.test")), 504),
+    (ClaudeConnectionError(request=httpx.Request("POST", "https://example.test")), 502)])
 def test_ai_failures_do_not_save_partial_turn(setup, error, expected):
     client, agent, wedding_id, headers = setup
     async def fail(*args):
@@ -178,3 +182,42 @@ def test_cors_allows_frontend_with_token_header(setup):
     assert response.headers["access-control-allow-origin"] == "http://localhost:3000"
     denied = client.options("/api/weddings", headers={"Origin": "https://untrusted.example", "Access-Control-Request-Method": "POST"})
     assert denied.status_code == 400
+
+
+@pytest.mark.parametrize("style", ["garden", "beach", "classic", "modern", "rustic", "bohemian", "tropical", "intimate"])
+def test_visual_website_brief_roundtrip(setup, style):
+    client, _, _, _ = setup
+    brief = {"names": "Alex & Sam", "style": style, "direction": f"{style}-3",
+             "decor": {"florals": "White roses", "lighting": "Candles", "tables": "Round tables"}}
+    response = client.post("/api/weddings", json={"brief": brief})
+    assert response.status_code == 201
+    created = response.json()
+    assert created["wedding"]["brief"]["direction"] == f"{style}-3"
+    url = f'/api/weddings/{created["wedding"]["id"]}'
+    headers = {"X-Wedding-Token": created["access_token"]}
+    updated = client.patch(url, headers=headers, json={"expected_revision": 0, "brief": {"decor": {"lighting": "Fairy lights"}}})
+    assert updated.json()["wedding"]["brief"]["decor"] == {"florals": "White roses", "lighting": "Fairy lights", "tables": "Round tables"}
+    changed = client.patch(url, headers=headers, json={"expected_revision": 1, "brief": {"style": ""}})
+    assert changed.json()["wedding"]["brief"]["direction"] == ""
+
+
+def test_chat_correction_keeps_visual_choices(setup):
+    client, agent, wedding_id, headers = setup
+    url = f"/api/weddings/{wedding_id}"
+    client.patch(url, headers=headers, json={"expected_revision": 0, "brief": {"style": "beach", "direction": "beach-1", "decor": {"florals": "Tropical leaves", "lighting": "Lanterns"}}})
+    result = client.post(url + "/chat", headers=headers, json={"message": "80 guests, total budget S$6000", "expected_revision": 1, "request_id": str(uuid4())})
+    brief = result.json()["wedding"]["brief"]
+    assert brief["direction"] == "beach-1"
+    assert brief["decor"]["lighting"] == "Lanterns"
+
+
+def test_invalid_direction_patch_is_a_validation_error(setup):
+    client, _, wedding_id, headers = setup
+    response = client.patch(f"/api/weddings/{wedding_id}", headers=headers, json={"expected_revision": 0, "brief": {"style": "garden", "direction": "beach-0"}})
+    assert response.status_code == 422
+
+
+def test_legacy_coastal_brief_migrates_to_beach(setup):
+    client, _, _, _ = setup
+    result = client.post("/api/weddings", json={"brief": {"style": "coastal"}})
+    assert result.json()["wedding"]["brief"]["style"] == "beach"

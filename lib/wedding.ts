@@ -1,13 +1,16 @@
-import { emptyDecor, styles, type Decor } from './inspiration';
-export { styles } from './inspiration';
+import { emptyDecor, styles, type Decor } from './inspiration.ts';
+import { emptyPersonality, parsePersonality, type PersonalityProfile } from './personality.ts';
+export { styles } from './inspiration.ts';
 export const priorities = ['Beautiful food', 'Flowers & styling', 'Photography', 'A lovely venue', 'Music & atmosphere', 'Keeping it intimate'];
 export type WeddingBrief = {
   names: string; date: string; flexibleDate: boolean; location: string; guests: string; budget: string;
   keywords: string; style: string; direction: string; decor: Decor; priorities: string[]; notes: string;
+  personality: PersonalityProfile;
 };
 export const emptyBrief: WeddingBrief = {
-  names: '', date: '', flexibleDate: true, location: 'Singapore', guests: '80', budget: '20000',
+  names: '', date: '', flexibleDate: true, location: '', guests: '', budget: '',
   keywords: '', style: '', direction: '', decor: { ...emptyDecor }, priorities: [], notes: '',
+  personality: emptyPersonality,
 };
 export function getDirection(brief: WeddingBrief) {
   return styles.find(style => style.id === brief.style)?.directions.find(direction => direction.id === brief.direction);
@@ -30,6 +33,7 @@ export function readStoredBrief(value: unknown): WeddingBrief | null {
     keywords: brief.keywords as string, style: styleId as string, direction: direction?.id ?? '',
     decor: Object.fromEntries(Object.keys(emptyDecor).map(key => [key, typeof decor[key] === 'string' ? decor[key] : ''])) as Decor,
     priorities: brief.priorities.filter(item => priorities.includes(item)).slice(0, 3), notes: brief.notes as string,
+    personality: parsePersonality(brief.personality) ?? structuredClone(emptyPersonality),
   };
 }
 export function formatMoney(value: string) { return `S$${new Intl.NumberFormat('en-SG', { maximumFractionDigits: 0 }).format(Number(value))}`; }

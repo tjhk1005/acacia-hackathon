@@ -1,0 +1,229 @@
+{
+  "version": 3,
+  "complete": true,
+  "words": "An intimate garden dinner with room for bright colour",
+  "feelings": [
+    {
+      "id": "feeling:romantic:Flower-filled afternoon:Berry-Butter-30",
+      "kind": "feeling",
+      "title": "Quietly romantic",
+      "description": "Soft light, meaningful moments and the people who know you best.",
+      "query": "Quietly romantic Flower-filled afternoon wedding inspiration",
+      "tags": [
+        "romantic",
+        "soft",
+        "intimate",
+        "botanical",
+        "pink",
+        "yellow"
+      ],
+      "colors": [
+        "#865065",
+        "#e8cf84",
+        "#f5efe4",
+        "hsl(30 23% 72%)"
+      ],
+      "referenceId": "pin-321303754676787992"
+    },
+    {
+      "id": "feeling:joyful:Open-air celebration:Powder blue-Ink-132",
+      "kind": "feeling",
+      "title": "Joyfully colourful",
+      "description": "The sound of laughter, a little colour and a day full of life.",
+      "query": "Joyfully colourful Open-air celebration wedding inspiration",
+      "tags": [
+        "playful",
+        "colourful",
+        "abundant",
+        "outdoor",
+        "blue",
+        "black"
+      ],
+      "colors": [
+        "#9eb9c6",
+        "#344347",
+        "#f5efe4",
+        "hsl(132 23% 72%)"
+      ],
+      "referenceId": "pin-17310779813566561"
+    }
+  ],
+  "worlds": [
+    {
+      "id": "world:garden:cosy:Pearl-Sea glass-164:Flower-filled afternoon",
+      "kind": "world",
+      "title": "Garden gathering",
+      "description": "A celebration wrapped in flowers, soft light and open air.",
+      "query": "Garden gathering wedding inspiration",
+      "tags": [
+        "garden",
+        "outdoor",
+        "botanical",
+        "romantic",
+        "intimate",
+        "soft",
+        "white",
+        "green"
+      ],
+      "colors": [
+        "#e5e2dc",
+        "#90b5ad",
+        "#f5efe4",
+        "hsl(164 23% 72%)"
+      ],
+      "referenceId": "pin-321303754676787992"
+    },
+    {
+      "id": "world:beach:joyful:Champagne-Lavender-306:Candlelit supper",
+      "kind": "world",
+      "title": "By the sea",
+      "description": "A horizon, a breeze and a beautifully unhurried celebration.",
+      "query": "By the sea wedding inspiration",
+      "tags": [
+        "beach",
+        "outdoor",
+        "botanical",
+        "soft",
+        "playful",
+        "colourful",
+        "abundant",
+        "gold",
+        "purple"
+      ],
+      "colors": [
+        "#cdb58b",
+        "#9b8bad",
+        "#f5efe4",
+        "hsl(306 23% 72%)"
+      ],
+      "referenceId": "pin-249738741817185841"
+    }
+  ],
+  "signatures": [
+    {
+      "id": "direction:courtyard:dramatic:Oat-Champagne-222:Simple ceremony",
+      "kind": "direction",
+      "title": "Dramatic courtyard celebration",
+      "description": "An intimate open-air gathering framed by beautiful architecture. Try oat & champagne with a beautifully simple ceremony.",
+      "query": "Dramatic courtyard celebration wedding inspiration",
+      "tags": [
+        "garden",
+        "outdoor",
+        "architectural",
+        "intimate",
+        "dramatic",
+        "classic",
+        "abundant",
+        "brown",
+        "gold"
+      ],
+      "colors": [
+        "#d2c1a4",
+        "#cdb58b",
+        "#f5efe4",
+        "hsl(222 23% 72%)"
+      ],
+      "referenceId": "pin-321303754676787992"
+    },
+    {
+      "id": "palette:Champagne-Sage-151",
+      "kind": "palette",
+      "title": "Champagne & Sage",
+      "description": "A colour story to borrow from, blend or keep alongside another favourite. Flower-filled afternoon gives it a different atmosphere.",
+      "query": "Champagne & Sage wedding colour palette inspiration",
+      "tags": [
+        "palette",
+        "gold",
+        "green"
+      ],
+      "colors": [
+        "#cdb58b",
+        "#91a17f",
+        "#f5efe4",
+        "hsl(151 23% 72%)"
+      ],
+      "referenceId": "pin-412079434672110189"
+    },
+    {
+      "id": "palette:Copper-Lilac-340",
+      "kind": "palette",
+      "title": "Copper & Lilac",
+      "description": "A colour story to borrow from, blend or keep alongside another favourite. Open-air celebration gives it a different atmosphere.",
+      "query": "Copper & Lilac wedding colour palette inspiration",
+      "tags": [
+        "palette",
+        "orange",
+        "purple"
+      ],
+      "colors": [
+        "#ad7151",
+        "#b7a2bd",
+        "#f5efe4",
+        "hsl(340 23% 72%)"
+      ],
+      "referenceId": "pin-99923685476205157"
+    },
+    {
+      "id": "setting:open-sky:Berry-Lavender-16:Candlelit supper",
+      "kind": "setting",
+      "title": "Under open skies",
+      "description": "The landscape is part of the celebration. Outdoors feels right.",
+      "query": "Under open skies wedding inspiration",
+      "tags": [
+        "outdoor",
+        "botanical",
+        "garden",
+        "pink",
+        "purple"
+      ],
+      "colors": [
+        "#865065",
+        "#9b8bad",
+        "#f5efe4",
+        "hsl(16 23% 72%)"
+      ],
+      "referenceId": "pin-512214157632679910"
+    },
+    {
+      "id": "nature:wild-green:Oat-Blush-75:A night of dancing",
+      "kind": "nature",
+      "title": "Let nature lead",
+      "description": "Loose greenery, organic shapes and a slightly wild feeling.",
+      "query": "Let nature lead wedding inspiration",
+      "tags": [
+        "botanical",
+        "forest",
+        "earthy",
+        "brown",
+        "pink"
+      ],
+      "colors": [
+        "#d2c1a4",
+        "#d8a39d",
+        "#f5efe4",
+        "hsl(75 23% 72%)"
+      ],
+      "referenceId": "pin-492649954032730"
+    },
+    {
+      "id": "simplicity:pared-back:Lilac-Ink-198:Small meaningful gathering",
+      "kind": "simplicity",
+      "title": "Beautifully pared back",
+      "description": "Space to breathe. A few thoughtful details are more than enough.",
+      "query": "Beautifully pared back wedding inspiration",
+      "tags": [
+        "minimal",
+        "modern",
+        "purple",
+        "black"
+      ],
+      "colors": [
+        "#b7a2bd",
+        "#344347",
+        "#f5efe4",
+        "hsl(198 23% 72%)"
+      ],
+      "referenceId": "pin-677580706452567052"
+    }
+  ]
+}

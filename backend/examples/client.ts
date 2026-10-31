@@ -1,9 +1,5 @@
-// Same shape as the frontend's lib/wedding.ts. You can use its type instead.
-export type WeddingBrief = {
-  names: string; date: string; flexibleDate: boolean; location: string;
-  guests: string; budget: string; keywords: string;
-  style: string; priorities: string[]; notes: string;
-};
+// Use the same brief type as the visual-planning website.
+import type { WeddingBrief } from '../../lib/wedding';
 
 export type Wedding = {
   id: string;

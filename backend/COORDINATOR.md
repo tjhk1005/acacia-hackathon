@@ -1,10 +1,10 @@
 # Vendor coordination prototype
 
-The backend from `codex/wedding-planning-backend` is included here so this documentation branch can run the coordinator independently. Existing preference APIs remain available. The separate Next.js discovery website has not been imported or connected.
+The coordinator shares the integrated backend's wedding record, including the complete version-3 personality. The Next.js quiz, `/planner` and `/vendors` use that same brief when explicitly synced. This separate developer dashboard still requires reconnecting with the wedding ID and private token; catering shortlists do not automatically become coordinator vendors or enquiries.
 
 ## Run
 
-From `/workspace/acacia-hackathon`:
+From the repository root:
 
 ```sh
 python -m venv backend/.venv
@@ -22,7 +22,7 @@ SQLite persists vendors, tasks, messages and delivery statuses alongside wedding
 
 ## Optional AI
 
-Without a provider key, coordination uses deterministic templates and requires no paid APIs. Configure the existing backend `OPENAI_API_KEY` and optional `OPENAI_MODEL` server-side to enable **Refine with AI**. This sends the selected vendor record and draft to the provider, then saves proposed wording for review. AI cannot dispatch messages, mark availability, book services or change tasks. Failed AI calls leave drafts unchanged. Model-generated wording must be reviewed before approval. Automated tests use a fake provider; live paid inference has not been validated.
+Without a provider key, coordination uses deterministic templates and requires no paid APIs. Configure the backend provider (`AI_PROVIDER=openai` with `OPENAI_API_KEY` / `OPENAI_MODEL`, or `AI_PROVIDER=anthropic` with `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL`) server-side to enable **Refine with AI**. This sends the current wedding brief (including quiz personality), selected vendor record and draft to the provider, then saves proposed wording for review. AI cannot dispatch messages, mark availability, book services or change tasks. Failed AI calls leave drafts unchanged. Model-generated wording must be reviewed before approval. Automated tests use a fake provider; live paid inference has not been validated.
 
 ## Transport and scheduling boundaries
 

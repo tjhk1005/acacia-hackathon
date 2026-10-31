@@ -7,6 +7,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import Field, AwareDatetime
 from openai import APIError, APITimeoutError
+from anthropic import APIError as ClaudeAPIError, APITimeoutError as ClaudeTimeoutError
 
 from .models import Model
 from .store import now
@@ -125,7 +126,7 @@ def coordinator_router(store, agent=None):
                     draft(state, wedding, vendor, f"availability:{vendor['id']}:{wedding['revision']}",
                         f"Hello {vendor['name']}, are you available for a wedding on {brief['date']} in {brief['location'] or 'a location to be confirmed'}? Please share your capacity, pricing, inclusions and exclusions. This is an enquiry, not a booking.")
             for task in state['tasks']:
-                if not task['done'] and datetime.fromisoformat(task['due_at']) <= datetime.now(timezone.utc) + timedelta(hours=body.reminder_hours):
+                if not task['done'] and datetime.fromisoformat(task['due_at'].replace('Z', '+00:00')) <= datetime.now(timezone.utc) + timedelta(hours=body.reminder_hours):
                     vendor = find(state['vendors'], task['vendor_id'])
                     draft(state, wedding, vendor, 'reminder:' + task['id'] + ':' + str(wedding['revision']), f"Hello {vendor['name']}, reminder: {task['title']} is due {task['due_at']}. Please share an update or flag any delay.")
             return dict(state, mode='simulation', note='Rule-based coordinator. Drafts require approval; no external messages are sent.')
@@ -137,15 +138,16 @@ def coordinator_router(store, agent=None):
             message = find(state['messages'], message_id)
             if message['status'] != 'draft':
                 raise HTTPException(409, 'Only current drafts can be refined')
-            return dict(draft=dict(message), vendor=dict(find(state['vendors'], message['vendor_id'])))
+            return dict(draft=dict(message), vendor=dict(find(state['vendors'], message['vendor_id'])),
+                        wedding_brief=json.loads(wedding['brief']))
         data = transaction(wedding_id, x_wedding_token, context)
         if agent is None:
             raise HTTPException(503, 'AI is not configured; generated rule-based drafts still work')
         try:
             content = await agent.draft_coordination(data)
-        except APITimeoutError:
+        except (APITimeoutError, ClaudeTimeoutError):
             raise HTTPException(504, 'AI timed out; draft unchanged')
-        except (APIError, ValueError):
+        except (APIError, ClaudeAPIError, ValueError):
             raise HTTPException(502, 'AI could not produce a draft; draft unchanged')
         def save(state, wedding):
             message = find(state['messages'], message_id)

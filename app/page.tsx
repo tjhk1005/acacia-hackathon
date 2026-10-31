@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { BRIEF_STORAGE, PERSONALITY_STORAGE, readLocalBrief } from '@/lib/wedding-storage';
 import { ArrowDownToLine, ArrowLeft, ArrowRight, Check, CheckCheck, ChevronRight, ClipboardList, ExternalLink, Flower2, Heart, LayoutDashboard, Leaf, MapPin, Pencil, RefreshCw, Sparkles, Users, Wallet, X } from 'lucide-react';
 import { DiscoveryCard } from '@/components/discovery-card';
 import { VisionCarousel } from '@/components/vision-carousel';
@@ -9,8 +11,8 @@ import { emptyPersonality, generateIdeas, parsePersonality, profileQuery, refere
 import { emptyBrief, formatMoney, priorities, readStoredBrief, type WeddingBrief } from '@/lib/wedding';
 import type { PinterestResult } from '@/lib/pinterest';
 
-const STORAGE_KEY='ever-after-personality-v3';
-const LEGACY_KEY='ever-after-wedding-brief-v1';
+const STORAGE_KEY=PERSONALITY_STORAGE;
+const LEGACY_KEY=BRIEF_STORAGE;
 const steps=['Your feeling','Your world','Your signature'];
 type View='quiz'|'vision'|'details';
 type Group='feelings'|'worlds'|'signatures';
@@ -73,8 +75,9 @@ export default function Home() {
       } else {
         const legacy=localStorage.getItem(LEGACY_KEY);
         if(legacy) {
-          loadedBrief=readStoredBrief(JSON.parse(legacy))??loadedBrief;
-          loadedProfile.words=loadedBrief.keywords;
+          loadedBrief=readLocalBrief(localStorage)??loadedBrief;
+          loadedProfile=loadedBrief.personality;
+          if(!loadedProfile.words)loadedProfile={...loadedProfile,words:loadedBrief.keywords};
           setNotice('Your earlier wedding details are safe. This shorter quiz is just about your personality; the practical details can wait.');
         }
       }
@@ -89,7 +92,11 @@ export default function Home() {
 
   useEffect(()=> {
     if(!ready||!storageAvailable)return;
-    try {localStorage.setItem(STORAGE_KEY,JSON.stringify({profile,brief,step,rounds,seed}));}
+    try {
+      const currentBrief={...brief,personality:profile};
+      localStorage.setItem(STORAGE_KEY,JSON.stringify({profile,brief:currentBrief,step,rounds,seed}));
+      localStorage.setItem(LEGACY_KEY,JSON.stringify(currentBrief));
+    }
     catch {setStorageAvailable(false);setNotice('Your profile is still here for this session. Download it to keep a copy; browser storage is full or unavailable.');}
   },[profile,brief,step,rounds,seed,ready,storageAvailable]);
 
@@ -128,7 +135,7 @@ export default function Home() {
     setError('');setNotice('Planning details saved in this browser. You can return to them anytime.');
   }
   function download() {
-    const file={version:3,weddingPersonality:profile,weddingDetails:brief,pinterestSearch:pinterestSearch(profileQuery(profile))};
+    const file={version:3,weddingPersonality:profile,weddingDetails:{...brief,personality:profile},pinterestSearch:pinterestSearch(profileQuery(profile))};
     const url=URL.createObjectURL(new Blob([JSON.stringify(file,null,2)],{type:'application/json'}));
     const link=document.createElement('a');link.href=url;link.download='our-wedding-personality.json';link.click();URL.revokeObjectURL(url);
   }
@@ -143,7 +150,8 @@ export default function Home() {
         <button className={`nav-item ${view==='quiz'?'active':''}`} onClick={()=>showStep(0)}><Heart size={18}/>Personality quiz{view==='quiz'&&<span className="nav-dot"/>}</button>
         <button className={`nav-item ${view==='vision'?'active':''}`} disabled={!profile.complete} onClick={()=>{setView('vision');setNotice('');setError('');}}><LayoutDashboard size={18}/>Your wedding vision</button>
         <button className={`nav-item ${view==='details'?'active':''}`} disabled={!profile.complete} onClick={openDetails}><ClipboardList size={18}/>Plan the details<span className="nav-hint">Later</span></button>
-        <div className="nav-item unavailable"><Users size={18}/>Your vendors<span className="nav-hint">Soon</span></div>
+        <Link className="nav-item" href="/planner"><Sparkles size={18}/>Your planner<span className="nav-hint">Chat</span></Link>
+        <Link className="nav-item" href="/vendors"><Users size={18}/>Your vendors<span className="nav-hint">Compare</span></Link>
       </nav>
       <div className="sidebar-note"><Leaf size={22}/><p>There’s no one<br/>kind of beautiful.<br/>There’s your kind.</p><span>Keep what feels like the two of you.</span></div>
       <div className="profile"><span className="avatar"><Heart size={17}/></span><div><strong>{brief.names||'Your next chapter'}</strong><span>{allKept.length} ideas that feel like you</span></div></div>
@@ -174,7 +182,7 @@ export default function Home() {
           <div className="personality-vision-grid"><VisionCarousel profile={profile} livePinterest={livePinterest}/><aside className="personality-profile-card"><div className="eyebrow">YOUR PERSONALITY AT A GLANCE</div><h2>A little more you.</h2>{profile.words&&<blockquote>“{profile.words}”</blockquote>}<ProfileGroup label="How it feels" ideas={profile.feelings}/><ProfileGroup label="The worlds you love" ideas={profile.worlds}/>{signatureCategories.map(item=><ProfileGroup key={item.id} label={item.label} ideas={profile.signatures.filter(idea=>idea.kind===item.id)}/>)}<a className="pinterest-link" href={pinterestSearch(profileQuery(profile))} target="_blank" rel="noreferrer">Explore our whole vibe on Pinterest <ExternalLink size={12}/></a><button className="download-button" onClick={download}><ArrowDownToLine size={15}/>Download our personality</button></aside></div>
           {paletteIdeas.length>0&&<section className="saved-palettes"><div><span className="eyebrow">THE COLOURS YOU’RE DRAWN TO</span><h2>Room for more than one colour story.</h2></div><div>{paletteIdeas.map(idea=><article key={idea.id}><div className="palette-strip">{idea.colors.map((color,index)=><span key={index} style={{background:color}} title={color}/>)}</div><span>{idea.title}</span></article>)}</div></section>}
           <section className="later-task"><div className="later-task-icon"><ClipboardList size={24}/></div><div><span className="eyebrow">A SEPARATE LITTLE CHAPTER</span><h2>Make it real. When you’re ready.</h2><p>Guest count, budget, flowers, lighting and tables belong in a calmer planning task, after the personality quiz.</p></div><button className="button secondary" onClick={openDetails}>Plan the details <ArrowRight size={16}/></button></section>
-          <div className="source-note"><span>{livePinterest?'Pinterest search is connected.':'Linked Pinterest references and curated local inspiration.'}</span><span>Your profile is saved in this browser. No bookings or messages are sent.</span></div>
+          <div className="source-note"><span>{livePinterest?'Pinterest search is connected.':'Linked Pinterest references and curated local inspiration.'}</span><span>Saved in this browser. <Link href="/planner">Bring every kept idea to your planner →</Link></span></div>
         </>:<>
           <div className="eyebrow"><Leaf size={14}/>THE QUIZ IS DONE. THIS CAN TAKE ITS TIME.</div>
           <div className="summary-heading"><div><h1>One little detail<br/><em>at a time.</em></h1><p className="intro">Your personality is already saved. Come back to these practical decisions whenever you’re ready.</p></div><button className="button secondary" onClick={()=>setView('vision')}><ArrowLeft size={15}/>Back to our vision</button></div>
@@ -182,7 +190,7 @@ export default function Home() {
           {error&&<div className="form-error" role="alert">{error}</div>}
           <section className="planning-task-panel" id="planning-task-panel" role="tabpanel" aria-labelledby={`planning-tab-${detailTab}`}>
             {detailTab==='essentials'?<><div className="section-heading"><Heart size={20}/><div><h2>Every plan starts with a few little details.</h2><p>Estimates are fine. Nothing here commits you to a vendor.</p></div></div><label className="field">Your names<input value={brief.names} onChange={event=>updateBrief('names',event.target.value)} placeholder="e.g. Jamie & Alex" maxLength={100}/></label><div className="field-row"><label className="field">Wedding date<input type="date" value={brief.date} onChange={event=>{updateBrief('date',event.target.value);updateBrief('flexibleDate',!event.target.value);}}/></label><label className="field">Location<div className="input-with-icon"><MapPin size={15}/><input value={brief.location} onChange={event=>updateBrief('location',event.target.value)} maxLength={100}/></div></label></div><label className="checkbox-field"><input type="checkbox" checked={brief.flexibleDate} onChange={event=>updateBrief('flexibleDate',event.target.checked)}/>We’re still deciding on a date</label><div className="field-row"><label className="field">Approximate guests<div className="input-with-icon"><Users size={15}/><input type="number" min="1" max="10000" value={brief.guests} onChange={event=>updateBrief('guests',event.target.value)}/></div></label><label className="field">Total wedding budget<div className="input-with-icon"><Wallet size={15}/><input type="number" min="1" value={brief.budget} placeholder="SGD" onChange={event=>updateBrief('budget',event.target.value)}/></div></label></div>{brief.budget&&Number(brief.budget)>0&&<p className="practical-summary">A total budget of {formatMoney(brief.budget)}. This is a preference, not a quote.</p>}</>:detailTab==='decor'?<><div className="section-heading"><Flower2 size={20}/><div><h2>Give the feeling a little shape.</h2><p>Optional notes for future conversations with a florist, venue or stylist.</p></div></div><div className="later-decor-fields">{(Object.keys(decorLabels) as (keyof typeof decorLabels)[]).map(key=><label className="field" key={key}>{decorLabels[key]}<textarea rows={3} value={brief.decor[key]} onChange={event=>updateBrief('decor',{...brief.decor,[key]:event.target.value})} placeholder="Still exploring? Leave this for another day." maxLength={1000}/><a className="pinterest-link" href={pinterestSearch(`${profileQuery(profile)} ${decorLabels[key]}`)} target="_blank" rel="noreferrer">Explore examples on Pinterest <ExternalLink size={11}/></a></label>)}</div></>:<><div className="section-heading"><Heart size={20}/><div><h2>What deserves a little more attention?</h2><p>Keep up to three priorities for the planning work ahead.</p></div></div><div className="priority-grid">{priorities.map((priority,index)=><button key={priority} type="button" aria-pressed={brief.priorities.includes(priority)} className={`priority-chip ${brief.priorities.includes(priority)?'selected':''}`} disabled={brief.priorities.length===3&&!brief.priorities.includes(priority)} onClick={()=>updateBrief('priorities',brief.priorities.includes(priority)?brief.priorities.filter(item=>item!==priority):[...brief.priorities,priority])}><span className="priority-index">0{index+1}</span>{priority}{brief.priorities.includes(priority)&&<Check size={14}/>}</button>)}</div><label className="field later-notes">Anything else we should know?<textarea value={brief.notes} rows={4} maxLength={2000} onChange={event=>updateBrief('notes',event.target.value)} placeholder="Traditions, dietary needs, accessibility, things you love or would rather skip…"/></label></>}
-            <div className="planning-task-footer"><span>Saved only in this browser for now.</span><button className="button primary" onClick={saveDetails}>Save these details <Check size={16}/></button></div>
+            <div className="planning-task-footer"><span>Saved in this browser. <Link href="/planner">Sync with your planner →</Link></span><button className="button primary" onClick={saveDetails}>Save these details <Check size={16}/></button></div>
           </section>
         </>}
       </main><footer className="site-footer"><span>Made with a little love & a lot of intention.</span><span>EVER AFTER · HACKATHON PREVIEW</span></footer>
