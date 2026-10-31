@@ -1,5 +1,6 @@
 import { parsePersonality } from './personality.ts';
 import { readStoredBrief, type WeddingBrief } from './wedding.ts';
+import { planningDetailsErrors } from './planning-details.ts';
 
 export const PERSONALITY_STORAGE = 'ever-after-personality-v3';
 export const BRIEF_STORAGE = 'ever-after-wedding-brief-v1';
@@ -22,6 +23,8 @@ export function readLocalBrief(storage: BrowserStorage): WeddingBrief | null {
 }
 
 export function persistLocalBrief(storage: BrowserStorage, brief: WeddingBrief): void {
+  const errors = planningDetailsErrors(brief);
+  if (errors.guests || errors.budget) throw new Error(errors.guests || errors.budget);
   let record: Record<string, unknown> = {};
   try { record = JSON.parse(storage.getItem(PERSONALITY_STORAGE) || '{}'); } catch { /* Repair an unreadable local draft. */ }
   storage.setItem(PERSONALITY_STORAGE, JSON.stringify({ ...record, profile: brief.personality, brief }));

@@ -159,9 +159,12 @@ def test_ai_failures_do_not_save_partial_turn(setup, error, expected):
     assert client.get(url + "/messages", headers=headers).json() == {"messages": []}
 
 
-def test_edit_during_ai_call_is_not_overwritten(setup):
+@pytest.mark.parametrize("unchanged", [False, True])
+def test_edit_during_ai_call_is_not_overwritten(setup, unchanged):
     client, agent, wedding_id, headers = setup
     url = f"/api/weddings/{wedding_id}"
+    if unchanged:
+        agent.result = PreferenceResult(updates=BriefPatch(), reply="Thanks.", questions=[])
     original = agent.extract
     async def competing_edit(*args):
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=client.app), base_url="http://test") as concurrent:

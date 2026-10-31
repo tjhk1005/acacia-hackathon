@@ -19,8 +19,11 @@ Set the base URL in the frontend's configuration; never expose an AI API key the
 | PATCH | `/api/weddings/{id}/vendors` | `{expected_revision, brief_revision, criteria?, shortlisted_ids?}` | Updated vendor discovery state. |
 
 Every wedding-specific request needs `X-Wedding-Token: <access_token>`. Tokens are returned only
-on create. The create response's `wedding.revision` is 0. Successful brief writes increment it;
-vendor selections have their own revision (see below).
+on create. The create response's `wedding.revision` is 0. Changes to the brief or its
+confirmation status increment it. Unchanged chat turns, identical edits and repeated
+confirmation preserve the revision and `updated_at`; chat history and request replay are
+still saved atomically. Stale expected revisions are rejected even for unchanged turns.
+Vendor selections have their own revision (see below).
 For chat, generate a UUID `request_id` and preserve the entire request body when retrying a timeout.
 If a completed request is replayed later, it returns the original snapshot, which may have an older
 revision; fetch the wedding again before allowing more edits.

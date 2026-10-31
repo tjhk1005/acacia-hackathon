@@ -1,5 +1,6 @@
 import { emptyDecor, styles, type Decor } from './inspiration.ts';
 import { emptyPersonality, parsePersonality, type PersonalityProfile } from './personality.ts';
+import { planningDetailsErrors } from './planning-details.ts';
 export { styles } from './inspiration.ts';
 export const priorities = ['Beautiful food', 'Flowers & styling', 'Photography', 'A lovely venue', 'Music & atmosphere', 'Keeping it intimate'];
 export type WeddingBrief = {
@@ -27,9 +28,12 @@ export function readStoredBrief(value: unknown): WeddingBrief | null {
   if (!style && styleId !== '') return null;
   const direction = style?.directions.find(item => item.id === brief.direction);
   const decor = brief.decor && typeof brief.decor === 'object' ? brief.decor as Record<string, unknown> : {};
+  // Older versions auto-saved invalid form inputs. Keep the rest of the brief
+  // usable, and ask for these unknown values again instead of failing API sync.
+  const errors = planningDetailsErrors({guests: brief.guests as string, budget: brief.budget as string});
   return {
     names: brief.names as string, date: brief.date as string, flexibleDate: brief.flexibleDate,
-    location: brief.location as string, guests: brief.guests as string, budget: brief.budget as string,
+    location: brief.location as string, guests: errors.guests ? '' : brief.guests as string, budget: errors.budget ? '' : brief.budget as string,
     keywords: brief.keywords as string, style: styleId as string, direction: direction?.id ?? '',
     decor: Object.fromEntries(Object.keys(emptyDecor).map(key => [key, typeof decor[key] === 'string' ? decor[key] : ''])) as Decor,
     priorities: brief.priorities.filter(item => priorities.includes(item)).slice(0, 3), notes: brief.notes as string,

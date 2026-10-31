@@ -187,6 +187,8 @@ The quiz does not create or authenticate an account. `/planner` provides the con
 
 The quiz writes `ever-after-personality-v3` and a compatible brief mirror. Planner and vendor pages read v3 first. Explicitly syncing a differing draft uses the current server revision; chat results update both local records without discarding reroll progress. The planner shows all kept alternatives, and vendor comparisons block shortlist changes when local quiz/details need syncing.
 
+Quiz choices save automatically. Practical details stay as unsaved form inputs until **Save these details** passes guest-count and exact SGD-budget validation. Invalid edits cannot overwrite either shared browser record; older invalid auto-saved counts and budgets reopen as unknown while valid preferences remain intact. Conversation-only chat turns and identical saves preserve the planning revision, vendor availability evidence, message drafts and reviewed shortlists.
+
 Backend validation, SQLite storage and API responses preserve the entire personality. Both AI adapters receive it as planning context. AI extraction can update practical details, keywords and notes, but cannot replace the kept quiz arrays; refining those choices belongs in the quiz. Preferences are not proof of feasibility or automatically hard constraints. Revision conflicts preserve the user's pending work and require review.
 
 Keep string-valued `guests` and `budget`, camelCase `flexibleDate`, explicit revision checks and the distinction between draft and confirmed briefs. Budget means the total wedding budget in SGD; catering allocations remain separate. The sample vendor catalogue does not yet rank aesthetics from the personality.

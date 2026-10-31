@@ -9,6 +9,7 @@ from uuid import uuid4
 
 from fastapi import HTTPException
 
+from .models import WeddingBrief
 from .planning import serialize_wedding
 
 
@@ -99,11 +100,16 @@ class Store:
                     if existing["payload_hash"] != request[1]:
                         raise HTTPException(409, "request_id has already been used with different input")
                     return json.loads(existing["response"])
-            cursor = db.execute("""UPDATE weddings SET brief=?, revision=revision+1, status=?, updated_at=?
-                                   WHERE id=? AND revision=?""",
-                                (brief.model_dump_json(), status, now(), wedding_id, expected_revision))
-            if cursor.rowcount != 1:
+            row = db.execute("SELECT * FROM weddings WHERE id=?", (wedding_id,)).fetchone()
+            if row is None or row["revision"] != expected_revision:
                 raise HTTPException(409, "The wedding changed. Fetch the latest revision and retry.")
+            # Conversation-only turns still save history and retry results, but must not
+            # invalidate vendor evidence or drafts tied to the unchanged planning state.
+            previous = WeddingBrief.model_validate_json(row["brief"])
+            if previous != brief or row["status"] != status:
+                db.execute("""UPDATE weddings SET brief=?, revision=revision+1, status=?, updated_at=?
+                              WHERE id=? AND revision=?""",
+                           (brief.model_dump_json(), status, now(), wedding_id, expected_revision))
             for role, content in messages:
                 db.execute("INSERT INTO messages(wedding_id, role, content, created_at) VALUES(?,?,?,?)",
                            (wedding_id, role, content, now()))
