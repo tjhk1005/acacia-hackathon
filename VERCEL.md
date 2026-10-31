@@ -38,3 +38,7 @@ Do not point tests at a production database. GitHub Actions starts its own Postg
 Vercel functions do not provide a continuously running worker. Automatic live provider delivery still requires a dedicated worker or durable scheduled-job integration; a background loop must not be treated as guaranteed serverless scheduling. The user makes final vendor, date and package decisions and handles booking confirmation and payment directly.
 
 Hosted verification requires access to the actual Vercel deployment and its private environment settings. A local build, Git push and PostgreSQL integration test do not establish hosted readiness. Do not use `/tmp` SQLite as production storage.
+
+## Newer main-branch demo files
+
+New demo gateway files added concurrently on `main` are retained in this release. Their temporary tunnel origin is not automatically used by this Vercel configuration: wedding requests use the confirmed internal backend binding. Routing authenticated wedding data to an external tunnel requires explicit authorization for that destination; no live tunnel request was made during release validation.
