@@ -11,6 +11,7 @@ from anthropic import APIError as ClaudeAPIError, APITimeoutError as ClaudeTimeo
 
 from .models import Model
 from .store import now
+from .schedule import record_schedule_updates
 
 
 class Vendor(Model):
@@ -47,17 +48,20 @@ def load_coordination(db, wedding):
         if vendor['availability_revision'] != wedding['revision']:
             vendor.update(availability='unknown', evidence_id=None)
     for message in state['messages']:
-        if message['status'] == 'draft' and message['brief_revision'] != wedding['revision']:
+        if message['status'] in {'draft', 'queued', 'waiting_window'} and message['brief_revision'] != wedding['revision']:
             message['status'] = 'cancelled'
     return state
 
 
 def save_coordination(db, wedding_id, state):
+    old = db.execute('SELECT state FROM coordination WHERE wedding_id=?', (wedding_id,)).fetchone()
+    wedding = db.execute('SELECT * FROM weddings WHERE id=?', (wedding_id,)).fetchone()
+    record_schedule_updates(db, wedding, json.loads(old['state']) if old else {}, state)
     db.execute('INSERT INTO coordination VALUES (?,?) ON CONFLICT(wedding_id) DO UPDATE SET state=excluded.state',
                (wedding_id, json.dumps(state)))
 
 
-def prepare_drafts(state, wedding, reminder_hours=72, timestamp=None, limit=20):
+def prepare_drafts(state, wedding, reminder_hours=72, timestamp=None, limit=20, vendor_ids=None):
     """A bounded, shared draft-only tool. Existing keys make re-runs harmless."""
     timestamp = timestamp or datetime.now(timezone.utc)
     brief = json.loads(wedding['brief'])
@@ -69,20 +73,21 @@ def prepare_drafts(state, wedding, reminder_hours=72, timestamp=None, limit=20):
             return
         message = dict(id=str(uuid4()), vendor_id=vendor['id'], key=key, content=content,
                        direction='outgoing', status='draft', brief_revision=wedding['revision'],
-                       created_at=timestamp.isoformat())
+                       created_at=timestamp.isoformat(), purpose='availability' if key.startswith('availability:') else 'reminder',
+                       automatic_safe=key.startswith('availability:'), source='whatsapp' if vendor.get('messaging_mode', 'off') != 'off' else 'simulation')
         state['messages'].append(message)
         existing.add(key)
         created.append(message)
 
     for vendor in state['vendors']:
-        if vendor.get('active', True) and brief['date'] and vendor['availability'] == 'unknown':
+        if (vendor_ids is None or vendor['id'] in vendor_ids) and vendor.get('messaging_mode') != 'automatic' and vendor.get('active', True) and brief['date'] and vendor['availability'] == 'unknown':
             add(vendor, f"availability:{vendor['id']}:{wedding['revision']}",
                 f"Hello {vendor['name']}, are you available for a wedding on {brief['date']} in {brief['location'] or 'a location to be confirmed'}? Please share your capacity, pricing, inclusions and exclusions. This is an enquiry, not a booking.")
     vendors = {vendor['id']: vendor for vendor in state['vendors']}
     for task in state['tasks']:
         vendor = vendors.get(task['vendor_id'])
-        if vendor and vendor.get('active', True) and vendor['availability'] != 'unavailable' and not task['done'] and datetime.fromisoformat(task['due_at'].replace('Z', '+00:00')) <= timestamp + timedelta(hours=reminder_hours):
-            add(vendor, 'reminder:' + task['id'] + ':' + str(wedding['revision']),
+        if vendor and (vendor_ids is None or vendor['id'] in vendor_ids) and vendor.get('active', True) and vendor['availability'] != 'unavailable' and not task['done'] and datetime.fromisoformat(task['due_at'].replace('Z', '+00:00')) <= timestamp + timedelta(hours=reminder_hours):
+            add(vendor, 'reminder:' + task['id'] + ':' + str(wedding['revision']) + ':' + str(task.get('revision', 0)),
                 f"Hello {vendor['name']}, reminder: {task['title']} is due {task['due_at']}. Please share an update or flag any delay.")
     return created
 
@@ -142,7 +147,7 @@ def coordinator_router(store, agent=None):
         def operation(state, wedding):
             if not find(state['vendors'], body.vendor_id).get('active', True):
                 raise HTTPException(409, 'Restore this vendor before adding a deliverable')
-            task = dict(body.model_dump(mode='json'), id=str(uuid4()), done=False)
+            task = dict(body.model_dump(mode='json'), id=str(uuid4()), done=False, revision=0)
             state['tasks'].append(task)
             return task
         return transaction(wedding_id, x_wedding_token, operation)
@@ -151,7 +156,9 @@ def coordinator_router(store, agent=None):
     def complete(wedding_id: str, task_id: str, x_wedding_token: str = Header(default='')):
         def operation(state, wedding):
             task = find(state['tasks'], task_id)
-            task['done'] = True
+            if not task['done']:
+                task['revision'] = task.get('revision', 0) + 1
+                task['done'] = True
             for message in state['messages']:
                 if message.get('key', '').startswith('reminder:' + task_id + ':') and message['status'] == 'draft':
                     message['status'] = 'cancelled'
@@ -208,6 +215,8 @@ def coordinator_router(store, agent=None):
     def approve(wedding_id: str, message_id: str, x_wedding_token: str = Header(default='')):
         def operation(state, wedding):
             message = find(state['messages'], message_id)
+            if message.get('source') == 'whatsapp' or message['status'] not in {'draft', 'simulated'}:
+                raise HTTPException(409, 'Use the live messaging controls for WhatsApp messages')
             if message['direction'] != 'outgoing' or message['status'] == 'cancelled':
                 raise HTTPException(409, 'Only outgoing drafts can be approved')
             if message['brief_revision'] != wedding['revision']:

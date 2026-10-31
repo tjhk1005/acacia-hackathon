@@ -15,17 +15,19 @@ from pydantic import ValidationError
 from .agents import configured_agent
 from .coordinator import coordinator_router
 from .controller import controller_router
+from .live_messaging import LiveMessaging, messaging_router
 from .models import (ChatRequest, ChatResponse, ConfirmWedding, CreateResponse,
                      CreateWedding, MessagesResponse, UpdateWedding, WeddingBrief, WeddingResponse)
 from .planning import merge_brief, missing_fields, serialize_wedding
 from .store import Store
+from .schedule import schedule_router
 from .vendors import VendorChange, VendorsResponse, discovery, save_selection
 
 ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(ROOT / ".env")
 
 
-def create_app(database_path=None, agent=None):
+def create_app(database_path=None, agent=None, messaging_settings=None, messaging_transport=None):
     owned_agent = agent is None
     if agent is None:
         agent = configured_agent()
@@ -33,14 +35,20 @@ def create_app(database_path=None, agent=None):
     if not path.is_absolute():
         path = ROOT / path
     store = Store(path)
+    messaging = LiveMessaging(store, agent, messaging_settings, messaging_transport)
 
     @asynccontextmanager
     async def lifespan(app):
-        yield
-        if owned_agent and agent is not None:
-            await agent.close()
+        messaging.start()
+        try:
+            yield
+        finally:
+            await messaging.close()
+            if owned_agent and agent is not None:
+                await agent.close()
 
     app = FastAPI(title="Ever After Planning API", version="0.2.0", lifespan=lifespan)
+    app.state.messaging = messaging
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[item.strip() for item in os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",") if item.strip()],
@@ -133,6 +141,8 @@ def create_app(database_path=None, agent=None):
 
     app.include_router(coordinator_router(store, agent))
     app.include_router(controller_router(store))
+    app.include_router(messaging_router(messaging))
+    app.include_router(schedule_router(store))
     return app
 
 

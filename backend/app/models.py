@@ -177,6 +177,19 @@ class PreferenceResult(Model):
     questions: List[str] = Field(max_length=3)
 
 
+class VendorReplyAnalysis(Model):
+    availability: Literal['unknown', 'available', 'unavailable']
+    availability_date: Optional[str]
+    next_question: Literal['none', 'availability', 'itemised_quote', 'menu_options', 'setup_requirements']
+    needs_user_decision: bool
+    reason: str = Field(max_length=1000)
+
+    @field_validator('availability_date')
+    @classmethod
+    def valid_availability_date(cls, value):
+        return BriefPatch(date=value).date if value else None
+
+
 class BudgetSummary(Model):
     currency: Literal["SGD"]
     total: Optional[str]

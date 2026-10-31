@@ -49,7 +49,7 @@ class ControllerView(Model):
     counts: dict
     coordination: dict
     activity: List[dict]
-    mode: Literal['simulation'] = 'simulation'
+    mode: Literal['simulation', 'mixed'] = 'simulation'
 
 
 def inputs(db, wedding, timestamp):
@@ -105,10 +105,16 @@ def assignments(wedding, selection, coordination, phases):
          'Some saved packages no longer fit. Review their constraints before proceeding.' if shortlisted else
          'Save up to three fictional packages to understand the price and inclusion trade-offs.',
          'blocked' if not filters_ready else 'completed' if valid_shortlist else 'needs_user_decision', 50, '/vendors', ['catering-filters'], shortlisted)
-    task('contacts', 'vendor_communication', 'Add vendor contacts for the simulation',
+    task('contacts', 'vendor_communication', 'Add vendor contacts',
          f'{len(vendors)} manually entered vendor contacts. These are separate from the fictional catalogue.' if vendors else
-         'Add a vendor you want to simulate contacting. Sample packages never become real contacts automatically.',
+         'Add a vendor contact, then choose simulation or connect their opted-in WhatsApp number. Sample packages never become real contacts automatically.',
          'completed' if vendors else 'ready' if confirmed else 'blocked', 55, '/controller#vendor-desk', ['confirmation'])
+    for vendor in vendors:
+        if vendor.get('needs_user_decision'):
+            task('vendor-review:' + vendor['id'], 'couple', 'Review ' + vendor['name'] + '’s conversation',
+                 vendor.get('decision_reason') or 'This vendor conversation needs your decision before automatic enquiries can continue.',
+                 'needs_user_decision', 18, '/controller#whatsapp', ['confirmation'],
+                 [vendor['evidence_id']] if vendor.get('evidence_id') else [])
 
     if not vendors:
         availability_status, availability_detail = 'blocked', 'Add a contact before preparing an availability enquiry.'
@@ -118,14 +124,21 @@ def assignments(wedding, selection, coordination, phases):
         availability_status = 'needs_user_decision'
         availability_detail = 'Unavailable in the simulated replies: ' + ', '.join(vendor['name'] for vendor in unavailable) + '. Choose an alternative vendor or revise the plan; no date or booking is changed automatically.'
     elif not unknown:
-        availability_status, availability_detail = 'completed', 'Availability has been explicitly annotated from simulated replies. This is not a booking or a verified quotation.'
+        availability_status, availability_detail = 'completed', 'Availability is recorded from vendor reply evidence or explicit simulation annotations. AI-extracted availability is a vendor claim to review, not a booking or verified quotation.'
     elif not confirmed:
         availability_status, availability_detail = 'blocked', 'Review and confirm the latest brief before preparing new enquiries.'
     else:
         keys = {message.get('key'): message for message in coordination['messages'] if message['status'] != 'cancelled'}
         awaiting = [keys.get(f"availability:{vendor['id']}:{wedding['revision']}") for vendor in unknown]
-        availability_status = 'ready' if any(message is None for message in awaiting) else 'needs_user_decision' if any(message['status'] == 'draft' for message in awaiting) else 'waiting_for_vendor'
-        availability_detail = 'Run the controller to prepare the missing enquiries.' if availability_status == 'ready' else 'Review the availability drafts below.' if availability_status == 'needs_user_decision' else 'Record a simulated reply below. No real messages have been sent.'
+        live = any(vendor.get('messaging_mode', 'off') != 'off' for vendor in unknown)
+        if live:
+            live_messages = [message for message in coordination['messages'] if message.get('source') == 'whatsapp' and message.get('purpose') == 'availability' and message.get('brief_revision') == wedding['revision'] and message['status'] != 'cancelled']
+            failed = any(message['status'] in {'failed', 'uncertain'} for message in live_messages)
+            availability_status = 'needs_user_decision' if failed else 'waiting_for_vendor'
+            availability_detail = 'WhatsApp delivery needs review. Check the connection and delivery record before retrying.' if failed else 'WhatsApp automation is enabled for connected contacts. Check the live delivery record; Sandbox enquiries wait for a fresh vendor message to open the 24-hour window.'
+        else:
+            availability_status = 'ready' if any(message is None for message in awaiting) else 'needs_user_decision' if any(message['status'] == 'draft' for message in awaiting) else 'waiting_for_vendor'
+            availability_detail = 'Run the controller to prepare the missing enquiries.' if availability_status == 'ready' else 'Review the availability drafts below.' if availability_status == 'needs_user_decision' else 'Record a simulated reply below. No real messages have been sent.'
     task('availability', 'vendor_communication', 'Resolve vendor availability', availability_detail,
          availability_status, 20 if unavailable else 35 if vendors and not brief.date else 65,
          '/planner' if vendors and not brief.date else '/controller#vendor-desk', ['contacts'],
@@ -176,6 +189,7 @@ def view(db, wedding, timestamp):
                 'overdue': sum(phases[task['id']] == 'overdue' and task['vendor_id'] in active_ids for task in coordination['tasks']),
                 'completed_steps': sum(task.status == 'completed' for task in tasks)},
         coordination=coordination, activity=activity,
+        mode='mixed' if any(message.get('source') == 'whatsapp' for message in coordination['messages']) else 'simulation',
     )
 
 
