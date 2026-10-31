@@ -7,9 +7,11 @@ from typing import Optional
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from openai import APIError, APITimeoutError
 from pydantic import ValidationError
 
+from .coordinator import coordinator_router
 from .agents import PreferencesAgent
 from .models import (ChatRequest, ChatResponse, ConfirmWedding, CreateResponse,
                      CreateWedding, MessagesResponse, UpdateWedding, WeddingBrief, WeddingResponse)
@@ -44,6 +46,10 @@ def create_app(database_path=None, agent=None):
         allow_methods=["GET", "POST", "PATCH"],
         allow_headers=["Content-Type", "X-Wedding-Token"],
     )
+
+    @app.get("/coordinator", include_in_schema=False)
+    def coordinator_page():
+        return FileResponse(ROOT / "static" / "coordinator.html")
 
     @app.get("/health")
     def health():
@@ -109,6 +115,7 @@ def create_app(database_path=None, agent=None):
             },
         )
 
+    app.include_router(coordinator_router(store, agent))
     return app
 
 
