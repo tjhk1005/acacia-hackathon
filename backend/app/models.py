@@ -182,3 +182,7 @@ class Message(Model):
 
 class MessagesResponse(Model):
     messages: List[Message]
+
+
+class CoordinationDraft(Model):
+    content: str = Field(min_length=1, max_length=4000)
