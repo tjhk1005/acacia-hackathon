@@ -34,9 +34,9 @@ function explain(status: number, detail: unknown): string {
   return 'We couldn’t save that change. Please check your details and try again.';
 }
 
-export async function planningRequest<T>(path: string, session?: Session | null, body?: unknown, method = body === undefined ? 'GET' : 'POST'): Promise<T> {
+export async function planningRequest<T>(path: string, session?: Session | null, body?: unknown, method = body === undefined ? 'GET' : 'POST', timeoutMs = 45000): Promise<T> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 45000);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(`/planning-api${path}`, {
       method, cache: 'no-store', signal: controller.signal,

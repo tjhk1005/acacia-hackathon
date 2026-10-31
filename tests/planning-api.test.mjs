@@ -52,3 +52,12 @@ test('an HTML deployment response never counts as successful wedding creation',a
   t.mock.method(globalThis,'fetch',async()=>new Response('<html>Not found</html>',{status:200}));
   await assert.rejects(planningRequest('/api/weddings',null,{brief}),e=>e.code==='invalid_backend_response');
 });
+
+test('readiness checks can use a shorter timeout than AI chat requests',async t=>{
+  t.mock.method(globalThis,'fetch',async(_url,options)=>new Promise((_resolve,reject)=>{
+    options.signal.addEventListener('abort',()=>reject(new DOMException('Aborted','AbortError')),{once:true});
+  }));
+  const start=Date.now();
+  await assert.rejects(planningRequest('/health',null,undefined,'GET',20),e=>e.status===0);
+  assert.ok(Date.now()-start<1000);
+});
