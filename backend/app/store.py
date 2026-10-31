@@ -45,6 +45,22 @@ class Store:
                     criteria TEXT NOT NULL, shortlisted_ids TEXT NOT NULL,
                     reviewed_brief_revision INTEGER
                 );
+                CREATE TABLE IF NOT EXISTS schedule_changes (
+                    id TEXT PRIMARY KEY, wedding_id TEXT NOT NULL REFERENCES weddings(id),
+                    request_id TEXT NOT NULL, payload_hash TEXT NOT NULL,
+                    task_id TEXT NOT NULL, brief_revision INTEGER NOT NULL,
+                    before_json TEXT NOT NULL, after_json TEXT NOT NULL, reason TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'pending', created_at TEXT NOT NULL, decided_at TEXT,
+                    UNIQUE(wedding_id, request_id)
+                );
+                CREATE TABLE IF NOT EXISTS schedule_notifications (
+                    id TEXT PRIMARY KEY, wedding_id TEXT NOT NULL REFERENCES weddings(id),
+                    event_key TEXT NOT NULL, kind TEXT NOT NULL, title TEXT NOT NULL,
+                    detail TEXT NOT NULL, change_id TEXT REFERENCES schedule_changes(id),
+                    created_at TEXT NOT NULL, read_at TEXT,
+                    UNIQUE(wedding_id, event_key)
+                );
+                CREATE INDEX IF NOT EXISTS schedule_inbox ON schedule_notifications(wedding_id, created_at);
             """)
 
     @contextmanager

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./personality.css";
+import { ScheduleInbox } from '@/components/schedule-inbox';
 
 export const metadata: Metadata = {
   title: "Ever After — A little less planning. A lot more us.",
@@ -8,5 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body>{children}</body></html>;
+  return <html lang="en"><body>{children}<ScheduleInbox/></body></html>;
 }

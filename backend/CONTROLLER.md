@@ -7,7 +7,7 @@ The first Agent 4 implementation is a bounded rules-based controller, available 
 ## What a check does
 
 1. Read a consistent snapshot of the brief, its confirmation status, reviewed
-   catering criteria, sample shortlist, manually entered contacts, simulated replies
+   catering criteria, sample shortlist, manually entered contacts, simulated and authenticated WhatsApp replies
    and vendor deliverables.
 2. Assign structured tasks to the couple-understanding, vendor-communication,
    vendor-comparison and overall-coordination roles. Each task carries a stable key,
@@ -42,9 +42,13 @@ a changed brief rejects that annotation instead of attaching it to the wrong dat
 
 Fictional catering records are never converted into real contacts automatically.
 Real quotation extraction remains a visibly blocked task; a sample price or
-availability annotation cannot mark it complete. Nothing sends an external message,
-makes a booking, changes financial terms or resolves a preference conflict silently.
-Approving a draft records **simulated delivery**, not actual transport delivery.
+availability annotation cannot mark it complete. The [WhatsApp integration](WHATSAPP.md) is a piloting preview in this release.
+Its worker and live-send controls are disabled by default. External vendor search
+is planned; live vendor conversations have not been tested.
+Bookings, payments, cancellations and changed terms need explicit user decisions.
+The simulated desk approval records **simulated delivery**; live drafts have a
+separate **Send real WhatsApp message** action and provider delivery records.
+`mode=mixed` means real WhatsApp evidence exists alongside simulated records.
 
 ## API
 
@@ -75,6 +79,13 @@ older plan, so fetch the current view afterwards (the website does this).
 Snapshots live in `controller_state`; activities live in `controller_events`, with
 the most recent 30 returned. Existing per-wedding request storage provides replay.
 There is no new source of truth for the brief, vendor catalogue or messages.
+
+## Schedule decisions and returning users
+
+The site-wide Updates inbox preserves unread schedule events and pending approvals
+while the couple is away. The deadline section can propose a reschedule without
+applying it; only an explicit, current approval updates the task and cancels unsent
+old reminders. See [SCHEDULE.md](SCHEDULE.md) for the flow, routes and session scope.
 
 ## Couple updates and progress schedule
 

@@ -15,8 +15,9 @@ The latest personality quiz, planner chat, catering discovery and backend are in
 | Personality quiz | Three chapters, continuing rerolls, multiple kept themes and signature preferences, Pinterest references and a matched carousel. |
 | Planner chat / Agent 1 | `/planner` imports the full quiz and planning details, stores the wedding and chat in the backend, and supports Claude or OpenAI. Requires a running backend; AI chat needs its configured key. |
 | Vendor comparison | `/vendors` uses the same saved wedding and displays the full personality. Six fictional catering packages, deterministic estimates and saved comparisons; aesthetic fit and real availability are not scored. |
-| Vendor communication / Agent 2 | Enquiry and reminder drafts, manually recorded replies, and approved simulated deliveries in the backend coordinator. No real WhatsApp or Telegram transport. |
-| Overall coordination / Agent 4 | `/controller` diagnoses the next step, assigns roles and dependencies, flags unavailable vendors and deadlines, prepares bounded drafts, and persists activity. Runs on demand; external delivery, background scheduling and autonomous conflict resolution remain planned. See [controller details](backend/CONTROLLER.md). |
+| Vendor communication / Agent 2 | **Piloting — preview only.** `/controller#whatsapp` shows the planned vendor-search → WhatsApp enquiry → follow-up → approval flow. Integration code is included behind a default-on pilot lock; automatic vendor search is not implemented and live vendor conversations have not been tested. See [pilot details](backend/WHATSAPP.md). |
+| Overall coordination / Agent 4 | `/controller` diagnoses the next step, assigns roles and dependencies, flags unavailable vendors and deadlines, prepares bounded drafts, and persists activity. Controller checks run on demand. A future messaging worker can dispatch permitted enquiries and follow-ups after the pilot is explicitly unlocked; automatic conflict resolution and general deadline scheduling remain planned. See [controller details](backend/CONTROLLER.md). |
+| Schedule updates and approvals | Persistent in-app inbox across pages, catch-up alerts on return, and explicit approval/rejection of proposed deadline changes. Stale approvals are blocked. See [schedule details](backend/SCHEDULE.md). |
 | Four-agent workflow | Roles are confirmed below. Real quote extraction, complete wedding-plan comparison and automated handoffs are not complete. |
 
 The quiz and reference images work without paid APIs. Backend manual editing, sample catering comparison and simulated coordination also work without an AI key. Claude/OpenAI calls require the selected provider's key and use its credits. Live provider quality and billing must be checked separately from mocked tests.
@@ -154,11 +155,11 @@ Use persisted events and tasks rather than agents continuously polling or passin
 
 The team is writing a separate document containing the exact AI guardrails. **This README describes responsibilities; it does not replace that document or establish permission to perform real-world actions.** Add the approved guardrails document and link it here before enabling autonomous tools.
 
-Until those permissions are specified, keep external communication as drafts or simulated conversations. Booking, payment, cancellation and material changes need explicit user decisions in the implementation. No agent should infer such permission merely from a preference or another agent's suggestion.
+The current approved demo scope permits automatic availability enquiries and bounded follow-up questions only, with recorded vendor opt-in. Bookings, payments, cancellations, negotiations and changed terms require explicit user decisions. This authority is enforced separately from AI wording: model output chooses a validated question type and cannot supply free-form automatic messages. See [implemented permissions and limits](backend/WHATSAPP.md#automatic-authority). Live sending stays disabled until provider setup and per-vendor permission are complete.
 
 Decisions still to settle:
 
-- The exact actions Agent 2 may send automatically, follow-up frequency, escalation rules and WhatsApp transport/provider.
+- Production transport, expanded follow-up frequency and escalation rules beyond the bounded Twilio Sandbox demo.
 - What counts as a material change and when a previous approval becomes invalid.
 - Quote comparison weights, category budgets, contingency and handling of incomplete vendor replies.
 - AI provider/model choices and how the four-agent design maps onto the backend prototype.
@@ -235,7 +236,7 @@ For chat, saved shared weddings and sample vendor comparison, run the backend as
 | `components/personality-summary.tsx` | Shared display of every kept quiz category in planner and vendor pages. |
 | `app/controller/`, `components/progress-overview.tsx`, `lib/progress.ts` | Latest updates, needs-your-input tasks, combined schedule and couple decision reminders using the existing controller. |
 | `components/progress-notice.tsx` | In-app attention and new-reply notices across quiz, planner and vendor pages. |
-| `backend/` | Validated wedding persistence, Claude/OpenAI adapters, sample vendor comparison and simulated coordination. |
+| `backend/` | Validated wedding persistence, Claude/OpenAI adapters, sample vendor comparison, schedule approvals and a disabled WhatsApp pilot integration. |
 | `public/inspiration/` | Local reference photography and source credits. |
 | `tests/inspiration.test.mjs`, `tests/personality.test.mjs` | Legacy compatibility checks, continuing rerolls, kept choices, moodboard filtering, image integrity and provider-response validation. |
 
@@ -251,10 +252,10 @@ The existing backend prototype uses SQLite and requires persistent storage; do n
 
 ## Next milestones
 
-1. Add the team's exact guardrails document before real external actions.
+1. Review the documented messaging authority before expanding automatic actions beyond the approved demo scope.
 2. Verify the integrated quiz → planner → saved brief → sample comparison loop with the team's configured Claude account.
 3. Connect shortlists to enquiries, evidence-backed quote extraction and Agent 4's dependency/conflict workflow.
-4. Connect Agent 2 to the chosen WhatsApp transport after access, permissions and costs are confirmed.
+4. After the hackathon demo, implement external vendor discovery and separately validate a provider account that supports custom WhatsApp messages. Keep the current release in piloting mode.
 5. Demonstrate a complete loop: feeling → specific preferences → vendor evidence → feasible options → one vendor conflict handled and explained to the couple.
 
 The hackathon also rewards measurable cost reduction and an explicitly licensed public repository. Measure actual workflow costs and identify which planning tasks are being automated. An open-source license has not yet been selected; choose and add one before claiming the code is openly licensed.

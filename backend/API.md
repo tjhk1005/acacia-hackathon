@@ -33,6 +33,11 @@ For chat, generate a UUID `request_id` and preserve the entire request body when
 If a completed request is replayed later, it returns the original snapshot, which may have an older
 revision; fetch the wedding again before allowing more edits.
 
+Live messaging routes, separate connection revisions, signed public callbacks and
+delivery-state semantics are documented in [WHATSAPP.md](WHATSAPP.md).
+Persistent schedule notifications, proposal creation and explicit approval/rejection
+routes are documented in [SCHEDULE.md](SCHEDULE.md).
+
 ## Wedding shape
 
 ```json
