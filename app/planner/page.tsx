@@ -51,7 +51,9 @@ export default function PlannerPage() {
       let current: Session | null = null;
       let imported: WeddingBrief | null = null;
       try {
-        if (active) { imported = readLocalBrief(localStorage); setLocalBrief(imported); }
+        if (active) {
+          try { imported = readLocalBrief(localStorage); setLocalBrief(imported); } catch { /* Restore the server session independently of local brief storage. */ }
+        }
         const saved = sessionStorage.getItem(SESSION_STORAGE);
         if (saved) {
           const parsed = JSON.parse(saved);
@@ -60,8 +62,10 @@ export default function PlannerPage() {
       } catch { if (active) setNotice('Browser storage isn’t available. Keep this tab open to retain your planning session.'); }
       if (active && current) setSession(current);
       try {
-        const health = await planningRequest<{ ai_configured: boolean }>('/health');
-        if (active) setAiReady(health.ai_configured);
+        try {
+          const health = await planningRequest<{ ai_configured: boolean }>('/health');
+          if (active) setAiReady(health.ai_configured);
+        } catch { if (active) setAiReady(null); }
         if (current && active) {
           setSession(current);
           const [state, history] = await Promise.all([
@@ -74,7 +78,13 @@ export default function PlannerPage() {
             accept(state.wedding, !differs); setMessages(history.messages);
           }
         }
-      } catch (issue) { if (active) setError((issue as Error).message); }
+      } catch (issue) {
+        if (active && issue instanceof PlanningError && issue.code === 'wedding_not_found') {
+          setSession(null); setWedding(null);
+          try { sessionStorage.removeItem(SESSION_STORAGE); } catch { /* In-memory recovery still works. */ }
+          setNotice('Your previous conversation is no longer available on the server. Your saved wedding vision has been kept. Continue below to create a new conversation; previous chat and vendor records cannot be restored from the local vision.');
+        } else if (active) setError((issue as Error).message);
+      }
       finally { if (active) setLoading(false); }
     }
     void restore();

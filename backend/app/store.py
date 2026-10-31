@@ -70,7 +70,7 @@ class Store:
             row = db.execute("SELECT * FROM weddings WHERE id=?", (wedding_id,)).fetchone()
         digest = hashlib.sha256((token or "").encode()).hexdigest()
         if not row or not secrets.compare_digest(row["token_hash"], digest):
-            raise HTTPException(404, "Wedding not found or access token is invalid")
+            raise HTTPException(404, {"code": "wedding_not_found", "message": "Wedding not found or access token is invalid"})
         return row
 
     def history(self, wedding_id, limit=100):

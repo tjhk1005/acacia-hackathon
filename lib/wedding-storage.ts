@@ -18,7 +18,8 @@ export function readLocalBrief(storage: BrowserStorage): WeddingBrief | null {
     } catch { /* Fall back to the compatible brief if a stored record is damaged. */ }
   }
   const legacy = storage.getItem(BRIEF_STORAGE);
-  return legacy ? readStoredBrief(JSON.parse(legacy)) : null;
+  try { return legacy ? readStoredBrief(JSON.parse(legacy)) : null; }
+  catch { return null; }
 }
 
 export function persistLocalBrief(storage: BrowserStorage, brief: WeddingBrief): void {

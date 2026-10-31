@@ -20,6 +20,12 @@ export async function proxyPlanningRequest(request: Request): Promise<Response> 
       ...(request.method === 'GET' || request.method === 'HEAD' ? {} : { body: await request.arrayBuffer() }),
       cache: 'no-store', redirect: 'manual', signal: AbortSignal.timeout(40000),
     });
+    if (upstream.status === 404) {
+      const error = await upstream.clone().json().catch(() => null);
+      if (!error || error.detail === 'Not Found') {
+        return Response.json({ detail: { code: 'backend_route_not_found', message: 'The backend service route is not configured correctly.' } }, { status: 502 });
+      }
+    }
     // Do not pass internal redirect locations, cookies or hop-by-hop headers to browsers.
     const responseHeaders = new Headers({ 'Cache-Control': 'no-store' });
     const contentType = upstream.headers.get('content-type');

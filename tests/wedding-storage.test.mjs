@@ -48,3 +48,7 @@ test('legacy briefs migrate without losing decor and damaged v3 drafts can use t
   assert.deepEqual(migrated.personality,emptyBrief.personality);
   assert.ok(briefsMatch(migrated,readStoredBrief(legacy)));
 });
+
+test('damaged legacy JSON does not throw during planner restoration',()=>{
+  assert.equal(readLocalBrief(storage({[BRIEF_STORAGE]:'broken JSON'})),null);
+});

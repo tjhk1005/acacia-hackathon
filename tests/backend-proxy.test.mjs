@@ -29,3 +29,13 @@ test('local development fallback, endpoint filtering and upstream failures',asyn
   globalThis.fetch=async()=>{throw new Error('private connection details')};
   const failure=await proxyPlanningRequest(new Request('http://site.test/planning-api/health'));assert.equal(failure.status,502);assert.ok(!(await failure.text()).includes('private connection'));
 });
+
+test('backend routing 404 is distinguished from a missing wedding record',async t=>{
+  environment(t);process.env.BACKEND_URL='https://backend.internal';
+  globalThis.fetch=async()=>new Response(JSON.stringify({detail:'Not Found'}),{status:404});
+  const routing=await proxyPlanningRequest(new Request('https://site.test/planning-api/api/weddings'));
+  assert.equal(routing.status,502);assert.equal((await routing.json()).detail.code,'backend_route_not_found');
+  globalThis.fetch=async()=>new Response(JSON.stringify({detail:{code:'wedding_not_found'}}),{status:404});
+  const missing=await proxyPlanningRequest(new Request('https://site.test/planning-api/api/weddings/old'));
+  assert.equal(missing.status,404);assert.equal((await missing.json()).detail.code,'wedding_not_found');
+});
