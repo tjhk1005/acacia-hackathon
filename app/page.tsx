@@ -166,7 +166,7 @@ export default function Home() {
         <button className={`nav-item ${view === 'summary' ? 'active' : ''}`} disabled={!saved || !getDirection(saved)} onClick={() => {if (saved) {setBrief(saved); setView('summary'); setError('');}}}><LayoutDashboard size={18}/>Overview{!saved && <span className="nav-hint">Next</span>}</button>
         <button className={`nav-item ${view === 'onboarding' ? 'active' : ''}`} onClick={() => {setView('onboarding'); goTo(0);}}><Heart size={18}/>Your vision<span className="nav-dot"/></button>
         <a className="nav-item" href="/planner"><Sparkles size={18}/>Your planner<span className="nav-hint">Chat</span></a>
-        <div className="nav-item unavailable"><Users size={18}/>Your vendors<span className="nav-hint">Soon</span></div>
+        <a className="nav-item" href="/vendors"><Users size={18}/>Your vendors<span className="nav-hint">Compare</span></a>
         <div className="nav-item unavailable"><ClipboardList size={18}/>The checklist<span className="nav-hint">Soon</span></div>
         <div className="nav-item unavailable"><Wallet size={18}/>Your budget<span className="nav-hint">Soon</span></div>
       </nav>

@@ -45,6 +45,9 @@ pnpm build
 - Manual brief editing and explicit confirmation; meaningful changes return a confirmed brief to draft.
 - The current setting, direction and decor are preserved across chat updates. Returning from visual onboarding with a different saved brief prompts the couple to choose which version to keep.
 - Pending chat input survives failures, completed requests can be retried without duplicating stored turns, and revision conflicts refresh the saved brief.
+- Catering discovery at `/vendors`: six clearly labelled fictional suppliers, reviewed dietary/service/budget filters, saved shortlists of up to three packages, and an itemised comparison.
+- Vendor matching and exact-decimal estimates recalculate from the saved guest count. Minimum orders, unpriced extras, exclusions and unconfirmed date availability remain visible. Catering allocations never replace the overall wedding budget.
+- Existing simulated vendor coordination remains available on the backend at `/coordinator`; discovery does not dispatch messages or make bookings.
 
 No API keys or paid services are required for visual onboarding or manual brief editing. AI chat requires a configured API account. Photos are served locally and Google Fonts is used for optional typography, with system fallbacks. See [photo credits](public/inspiration/README.md) for original sources and licensing.
 
@@ -54,7 +57,7 @@ Existing first-draft wedding briefs are preserved, with the former `coastal` set
 
 ## Next milestones
 
-- Vendor catalogue and comparisons, with explicit quote and availability states.
+- Replace the fictional catering catalogue with verified supplier records and ingest evidence-backed quotations. See [vendor discovery](backend/VENDORS.md).
 - Vendor response forms, checklist and in-app messaging.
 - Account login/invites and production hosting. Persistence and preferences-agent integration are implemented; live model quality needs verification with the team's API key.
 

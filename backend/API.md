@@ -15,9 +15,12 @@ Set the base URL in the frontend's configuration; never expose an AI API key the
 | POST | `/api/weddings/{id}/chat` | `{message, expected_revision, request_id}` | `{wedding, reply, changed_fields, questions, request_id, agent}` |
 | GET | `/api/weddings/{id}/messages` | — | `{messages: [{role, content, created_at}]}` (latest 100) |
 | POST | `/api/weddings/{id}/confirm` | `{expected_revision}` | `{wedding}` |
+| GET | `/api/weddings/{id}/vendors` | — | Saved catering filters, shortlist, matching results and sample estimates. |
+| PATCH | `/api/weddings/{id}/vendors` | `{expected_revision, brief_revision, criteria?, shortlisted_ids?}` | Updated vendor discovery state. |
 
 Every wedding-specific request needs `X-Wedding-Token: <access_token>`. Tokens are returned only
-on create. The create response's `wedding.revision` is 0. Successful writes increment it.
+on create. The create response's `wedding.revision` is 0. Successful brief writes increment it;
+vendor selections have their own revision (see below).
 For chat, generate a UUID `request_id` and preserve the entire request body when retrying a timeout.
 If a completed request is replayed later, it returns the original snapshot, which may have an older
 revision; fetch the wedding again before allowing more edits.
@@ -112,3 +115,7 @@ Chat is disabled when `/health` reports `ai_configured=false`; manual editing re
 `ai_provider` identifies the selected adapter (`anthropic` or `openai`). Provider choice and API keys
 are configured only on the backend. `ai_configured=true` means a credential is present, not that an
 external authentication or billing check has passed. Both providers return the same chat response.
+
+Vendor discovery details and calculation rules: [VENDORS.md](VENDORS.md). Its `expected_revision`
+refers to the separate vendor-selection revision; `brief_revision` refers to the wedding revision.
+All initial catering records are fictional sample data, with date availability unconfirmed.

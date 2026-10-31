@@ -39,6 +39,11 @@ class Store:
                     payload_hash TEXT NOT NULL, response TEXT NOT NULL,
                     PRIMARY KEY(wedding_id, request_id)
                 );
+                CREATE TABLE IF NOT EXISTS vendor_selections (
+                    wedding_id TEXT PRIMARY KEY REFERENCES weddings(id), revision INTEGER NOT NULL,
+                    criteria TEXT NOT NULL, shortlisted_ids TEXT NOT NULL,
+                    reviewed_brief_revision INTEGER
+                );
             """)
 
     @contextmanager

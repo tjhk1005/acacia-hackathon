@@ -18,6 +18,7 @@ from .models import (ChatRequest, ChatResponse, ConfirmWedding, CreateResponse,
                      CreateWedding, MessagesResponse, UpdateWedding, WeddingBrief, WeddingResponse)
 from .planning import merge_brief, missing_fields, serialize_wedding
 from .store import Store
+from .vendors import VendorChange, VendorsResponse, discovery, save_selection
 
 ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(ROOT / ".env")
@@ -86,6 +87,16 @@ def create_app(database_path=None, agent=None):
     def messages(wedding_id: str, x_wedding_token: Optional[str] = Header(None)):
         store.get(wedding_id, x_wedding_token)
         return {"messages": store.history(wedding_id)}
+
+    @app.get("/api/weddings/{wedding_id}/vendors", response_model=VendorsResponse)
+    def get_vendors(wedding_id: str, x_wedding_token: Optional[str] = Header(None)):
+        return discovery(store, store.get(wedding_id, x_wedding_token))
+
+    @app.patch("/api/weddings/{wedding_id}/vendors", response_model=VendorsResponse)
+    def update_vendors(wedding_id: str, body: VendorChange, x_wedding_token: Optional[str] = Header(None)):
+        store.get(wedding_id, x_wedding_token)
+        save_selection(store, wedding_id, body)
+        return discovery(store, store.get(wedding_id, x_wedding_token))
 
     @app.post("/api/weddings/{wedding_id}/chat", response_model=ChatResponse)
     async def chat(wedding_id: str, body: ChatRequest, x_wedding_token: Optional[str] = Header(None)):

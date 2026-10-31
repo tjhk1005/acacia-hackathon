@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ArrowUp, Check, Flower2, Heart, Pencil, RefreshCw, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowUp, Check, Flower2, Heart, Pencil, RefreshCw, Sparkles } from 'lucide-react';
 import { emptyDecor } from '@/lib/inspiration';
 import { getDirection, readStoredBrief, styles, type WeddingBrief } from '@/lib/wedding';
 import { BRIEF_STORAGE, SESSION_STORAGE, PlanningError, briefsMatch, planningRequest, type ChatTurn, type Message, type Session, type Wedding } from '@/lib/planning-api';
@@ -143,7 +143,7 @@ export default function PlannerPage() {
   const visibleQuestions = questions.filter(question => !messages.at(-1)?.content.includes(question));
 
   return <div className={css.shell}>
-    <header className={css.header}><Link href="/" className={css.brand}><Flower2 size={25} />ever after<span>.</span></Link><Link href="/" className={css.back}><ArrowLeft size={15} />Your wedding vision</Link></header>
+    <header className={css.header}><Link href="/" className={css.brand}><Flower2 size={25} />ever after<span>.</span></Link><nav className={css.pageNav}><Link href="/" className={css.back}><ArrowLeft size={15} />Your wedding vision</Link><Link href="/vendors" className={css.back}>Your vendors<ArrowRight size={15} /></Link></nav></header>
     <main className={css.main}>
       <div className={css.heading}><span className={css.eyebrow}><Sparkles size={14} /> A LITTLE CLARITY, TOGETHER</span><h1>Let’s find <em>your kind of day.</em></h1><p>Talk through what matters. Your planner keeps the details beside you, ready to refine.</p></div>
       {notice && <div className={css.notice} role="status">{notice}</div>}
