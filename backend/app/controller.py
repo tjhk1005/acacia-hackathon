@@ -6,7 +6,7 @@ from typing import List, Literal, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Header, HTTPException
-from pydantic import Field
+from pydantic import AwareDatetime, Field, field_validator
 
 from .coordinator import load_coordination, prepare_drafts, save_coordination
 from .models import Model, WeddingBrief, WeddingView
@@ -38,6 +38,36 @@ class Assignment(Model):
     brief_revision: int
 
 
+class DecisionCreate(Model):
+    request_id: UUID
+    title: str = Field(min_length=1, max_length=300)
+    detail: str = Field(default='', max_length=2000)
+    due_at: Optional[AwareDatetime] = None
+
+    @field_validator('title')
+    @classmethod
+    def nonempty_title(cls, value):
+        if not value.strip():
+            raise ValueError('Give this decision a title')
+        return value.strip()
+
+
+class DecisionChange(Model):
+    expected_revision: int = Field(ge=0)
+    done: bool
+
+
+class DecisionView(Model):
+    id: str
+    title: str
+    detail: str
+    due_at: Optional[str]
+    done: bool
+    revision: int
+    created_at: str
+    completed_at: Optional[str]
+
+
 class ControllerView(Model):
     wedding: WeddingView
     revision: int
@@ -49,6 +79,7 @@ class ControllerView(Model):
     counts: dict
     coordination: dict
     activity: List[dict]
+    decisions: List[DecisionView] = Field(default_factory=list)
     mode: Literal['simulation'] = 'simulation'
 
 
@@ -56,18 +87,40 @@ def inputs(db, wedding, timestamp):
     row = db.execute('SELECT * FROM vendor_selections WHERE wedding_id=?', (wedding['id'],)).fetchone()
     selection = dict(row) if row else {'revision': 0, 'criteria': '{}', 'shortlisted_ids': '[]', 'reviewed_brief_revision': None}
     coordination = load_coordination(db, wedding)
+    decisions = load_decisions(db, wedding['id'])
     phases = {}
     for task in coordination['tasks']:
         due = datetime.fromisoformat(task['due_at'].replace('Z', '+00:00'))
         phases[task['id']] = 'completed' if task['done'] else 'overdue' if due <= timestamp else 'due_soon' if due <= timestamp + timedelta(hours=72) else 'scheduled'
+    for decision in decisions:
+        phases['decision:' + decision['id']] = decision_phase(decision, timestamp)
     version = hashlib.sha256(json.dumps({
         'brief_revision': wedding['revision'], 'selection': selection,
-        'coordination': coordination, 'deadline_phases': phases,
+        'coordination': coordination, 'deadline_phases': phases, 'decisions': decisions,
     }, sort_keys=True).encode()).hexdigest()
     return selection, coordination, phases, version
 
 
-def assignments(wedding, selection, coordination, phases):
+def load_decisions(db, wedding_id):
+    return [dict(row) for row in db.execute(
+        'SELECT id,title,detail,due_at,done,revision,created_at,completed_at FROM planning_decisions WHERE wedding_id=? ORDER BY created_at,id',
+        (wedding_id,)).fetchall()]
+
+
+def decision_view(row):
+    return {key: row[key] for key in DecisionView.model_fields}
+
+
+def decision_phase(decision, timestamp):
+    if decision['done']:
+        return 'completed'
+    if not decision['due_at']:
+        return 'unscheduled'
+    due = datetime.fromisoformat(decision['due_at'])
+    return 'overdue' if due <= timestamp else 'due_soon' if due <= timestamp + timedelta(hours=72) else 'scheduled'
+
+
+def assignments(wedding, selection, coordination, phases, decisions=()):
     brief = WeddingBrief.model_validate_json(wedding['brief'])
     missing = missing_fields(brief)
     confirmed = not missing and wedding['status'] == 'confirmed'
@@ -151,6 +204,13 @@ def assignments(wedding, selection, coordination, phases):
               'Within 72 hours. The controller can prepare a reminder for a confirmed brief.' if phase == 'due_soon' else 'Scheduled for a later date.'),
              'completed' if deliverable['done'] else 'needs_user_decision' if conflict or phase == 'overdue' else 'waiting_for_vendor',
              25 if conflict or phase == 'overdue' else 75, '/controller#deadlines', ['contacts'], [deliverable['id']])
+    for decision in decisions:
+        phase = phases['decision:' + decision['id']]
+        task('decision:' + decision['id'], 'couple', decision['title'],
+             decision['detail'] or ('Marked done by you.' if decision['done'] else 'A decision you added to your plan.'),
+             'completed' if decision['done'] else 'ready' if phase == 'scheduled' else 'needs_user_decision',
+             12 if phase == 'overdue' else 22 if phase == 'due_soon' else 40 if phase == 'unscheduled' else 80,
+             '/controller#your-decisions', evidence=[decision['id']])
     return sorted(tasks, key=lambda item: (item.priority, item.key))
 
 
@@ -158,7 +218,8 @@ def view(db, wedding, timestamp):
     selection, coordination, phases, version = inputs(db, wedding, timestamp)
     row = db.execute('SELECT * FROM controller_state WHERE wedding_id=?', (wedding['id'],)).fetchone()
     snapshot = json.loads(row['snapshot']) if row else None
-    tasks = assignments(wedding, selection, coordination, phases)
+    decisions = load_decisions(db, wedding['id'])
+    tasks = assignments(wedding, selection, coordination, phases, decisions)
     complete = not missing_fields(WeddingBrief.model_validate_json(wedding['brief'])) and wedding['status'] == 'confirmed'
     # Probe a copy: GET diagnoses pending work but never creates drafts or writes state.
     pending_drafts = bool(prepare_drafts(json.loads(json.dumps(coordination)), wedding, timestamp=timestamp, limit=1)) if complete else False
@@ -174,8 +235,11 @@ def view(db, wedding, timestamp):
         counts={'vendors': sum(vendor.get('active', True) for vendor in coordination['vendors']),
                 'drafts': sum(message['status'] == 'draft' for message in coordination['messages']),
                 'overdue': sum(phases[task['id']] == 'overdue' and task['vendor_id'] in active_ids for task in coordination['tasks']),
+                'overdue_decisions': sum(phases['decision:' + decision['id']] == 'overdue' for decision in decisions),
+                'decisions_pending': sum(not decision['done'] for decision in decisions),
+                'needs_you': sum(task.status in {'needs_user_decision', 'needs_clarification'} for task in tasks),
                 'completed_steps': sum(task.status == 'completed' for task in tasks)},
-        coordination=coordination, activity=activity,
+        coordination=coordination, activity=activity, decisions=decisions,
     )
 
 
@@ -191,6 +255,12 @@ def controller_router(store):
                 kind TEXT NOT NULL, title TEXT NOT NULL, brief_revision INTEGER NOT NULL, created_at TEXT NOT NULL
             );
             CREATE INDEX IF NOT EXISTS controller_events_wedding ON controller_events(wedding_id,id);
+            CREATE TABLE IF NOT EXISTS planning_decisions (
+                wedding_id TEXT NOT NULL REFERENCES weddings(id), id TEXT NOT NULL, title TEXT NOT NULL,
+                detail TEXT NOT NULL, due_at TEXT, done INTEGER NOT NULL DEFAULT 0,
+                revision INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, completed_at TEXT,
+                payload_hash TEXT NOT NULL, PRIMARY KEY(wedding_id,id)
+            );
         ''')
 
     @router.get('', response_model=ControllerView)
@@ -200,6 +270,48 @@ def controller_router(store):
             db.execute('BEGIN')
             wedding = db.execute('SELECT * FROM weddings WHERE id=?', (wedding_id,)).fetchone()
             return view(db, wedding, utc_now())
+
+    @router.post('/decisions', response_model=DecisionView, status_code=201)
+    def add_decision(wedding_id: str, body: DecisionCreate, x_wedding_token: str = Header(default='')):
+        store.get(wedding_id, x_wedding_token)
+        payload_hash = hashlib.sha256(body.model_dump_json().encode()).hexdigest()
+        with store.connection() as db:
+            db.execute('BEGIN IMMEDIATE')
+            existing = db.execute('SELECT * FROM planning_decisions WHERE wedding_id=? AND id=?',
+                                  (wedding_id, str(body.request_id))).fetchone()
+            if existing:
+                if existing['payload_hash'] != payload_hash:
+                    raise HTTPException(409, 'This decision request was already used with different details')
+                return decision_view(existing)
+            timestamp = utc_now().isoformat()
+            due = body.due_at.astimezone(timezone.utc).isoformat() if body.due_at else None
+            db.execute('INSERT INTO planning_decisions(wedding_id,id,title,detail,due_at,created_at,payload_hash) VALUES(?,?,?,?,?,?,?)',
+                       (wedding_id, str(body.request_id), body.title, body.detail, due, timestamp, payload_hash))
+            revision = db.execute('SELECT revision FROM weddings WHERE id=?', (wedding_id,)).fetchone()[0]
+            db.execute('INSERT INTO controller_events(wedding_id,kind,title,brief_revision,created_at) VALUES(?,?,?,?,?)',
+                       (wedding_id, 'decision_added', 'Decision added: ' + body.title, revision, timestamp))
+            return decision_view(db.execute('SELECT * FROM planning_decisions WHERE wedding_id=? AND id=?',
+                                            (wedding_id, str(body.request_id))).fetchone())
+
+    @router.patch('/decisions/{decision_id}', response_model=DecisionView)
+    def change_decision(wedding_id: str, decision_id: str, body: DecisionChange, x_wedding_token: str = Header(default='')):
+        store.get(wedding_id, x_wedding_token)
+        with store.connection() as db:
+            db.execute('BEGIN IMMEDIATE')
+            row = db.execute('SELECT * FROM planning_decisions WHERE wedding_id=? AND id=?', (wedding_id, decision_id)).fetchone()
+            if row is None:
+                raise HTTPException(404, 'Decision not found')
+            if row['revision'] != body.expected_revision:
+                raise HTTPException(409, 'This decision changed. Refresh before updating it.')
+            if bool(row['done']) != body.done:
+                timestamp = utc_now().isoformat()
+                db.execute('UPDATE planning_decisions SET done=?,revision=revision+1,completed_at=? WHERE wedding_id=? AND id=?',
+                           (body.done, timestamp if body.done else None, wedding_id, decision_id))
+                revision = db.execute('SELECT revision FROM weddings WHERE id=?', (wedding_id,)).fetchone()[0]
+                db.execute('INSERT INTO controller_events(wedding_id,kind,title,brief_revision,created_at) VALUES(?,?,?,?,?)',
+                           (wedding_id, 'decision_completed' if body.done else 'decision_reopened',
+                            ('Decision completed: ' if body.done else 'Decision reopened: ') + row['title'], revision, timestamp))
+            return decision_view(db.execute('SELECT * FROM planning_decisions WHERE wedding_id=? AND id=?', (wedding_id, decision_id)).fetchone())
 
     @router.post('/run', response_model=ControllerView)
     def run(wedding_id: str, body: ControllerRun, x_wedding_token: str = Header(default='')):

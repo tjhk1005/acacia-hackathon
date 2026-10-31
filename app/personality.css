@@ -263,3 +263,5 @@
 .shared-palette { display:inline-flex; flex-shrink:0; }
 .shared-palette i { width:10px; height:14px; display:block; }
 .shared-personality-note { font-size:10px; color:#7e8974; line-height:1.8; margin:18px 0 0; }
+
+.progress-count { display:inline-block; padding:3px 7px; border-radius:12px; background:#eee3cc; color:#775d32; font-size:10px; line-height:1.5; white-space:nowrap; }

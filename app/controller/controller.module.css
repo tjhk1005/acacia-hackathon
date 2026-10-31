@@ -86,3 +86,37 @@
 .empty>.secondary { margin:16px auto 0; display:flex; }
 @media(max-width:1000px) { .heading { align-items:start; flex-direction:column; } .next { grid-template-columns:1fr; gap:23px; } .runBox { border-left:0; border-top:1px solid #d7e0cb; padding:20px 0 0; } .header { align-items:start; } .header nav { justify-content:flex-end; gap:16px; } }
 @media(max-width:650px) { .header { padding:21px 18px; gap:16px; } .brand { font-size:24px; } .header nav { gap:10px 14px; font-size:9px; } .main { padding:30px 17px 50px; } .heading h1 { font-size:40px; } .banner { align-items:start; flex-direction:column; gap:10px; padding:17px; } .banner p { font-size:11px; } .next { padding:23px; } .next h2 { font-size:29px; } .stats { grid-template-columns:1fr 1fr; gap:10px; } .stats>span { padding:15px; font-size:10px; } .assignments,.messages,.fields { grid-template-columns:1fr; } .sectionHeading h2 { font-size:29px; } .assignment,.complete { padding:20px; } .taskTop { align-items:start; gap:10px; } .contactList>article,.deliverable { align-items:start; flex-direction:column; gap:10px; padding:18px; } .formPanel { padding:18px; } .activity li { grid-template-columns:1fr; gap:5px; } .activity li>span { padding-top:0; } .empty { padding:30px 23px; } }
+
+.progressNav { display:flex; flex-direction:row; flex-wrap:wrap; gap:12px 24px; margin:26px 0; font-size:12px; color:#607b49; }
+.overviewGrid { display:grid; grid-template-columns:1.15fr 1fr; gap:24px; align-items:start; }
+.overviewPanel { background:#fffefa; border:1px solid #dfe5d3; border-radius:12px; padding:25px; min-width:0; }
+.panelHeading { display:flex; align-items:center; gap:10px; }
+.panelHeading h2 { font:400 30px/1.2 var(--serif); margin:0; }
+.attentionCount { margin-left:auto; border-radius:50%; min-width:27px; height:27px; display:grid; place-items:center; background:#eee3cc; color:#7c6139; font-size:12px; }
+.updateList,.attentionList,.scheduleList { list-style:none; padding:0; margin:0; }
+.updateList { max-height:440px; overflow-y:auto; padding-right:8px; }
+.updateList li,.attentionList li { padding:18px 0; border-top:1px solid #e5e9dc; }
+.updateList li>div { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; font-size:9px; color:#8a9979; }
+.updateList h3,.attentionList h3,.scheduleRow h3,.decisionList h3 { font-size:14px; line-height:1.6; font-weight:500; margin:9px 0 5px; overflow-wrap:anywhere; }
+.updateList p,.attentionList p,.decisionList p { font-size:12px; line-height:1.85; color:#7d8d6f; margin:7px 0; white-space:pre-wrap; overflow-wrap:anywhere; }
+.updateList a,.attentionList a,.scheduleRow>a { display:inline-flex; align-items:center; gap:6px; font-size:11px; color:#68854e; margin-top:8px; }
+.updateList summary { cursor:pointer; font-size:11px; color:#68854e; }
+.attentionList li { padding:14px 0; }
+.scheduleTools { display:flex; flex-wrap:wrap; align-items:center; gap:15px 25px; margin:18px 0; font-size:11px; }
+.scheduleTools label { display:flex; align-items:center; gap:9px; }
+.scheduleTools select { padding:8px 10px; border:1px solid #d6dfc8; border-radius:6px; font:inherit; color:#577147; background:#fffefa; }
+.scheduleTools input { accent-color:#718c56; }
+.scheduleRow { display:grid; grid-template-columns:180px minmax(0,1fr) 100px; gap:22px; align-items:center; border:1px solid #dde5d1; border-radius:9px; background:#fffefa; margin-bottom:10px; padding:19px 22px; }
+.scheduleDate { display:flex; flex-direction:column; align-items:start; gap:8px; font-size:11px; }
+.scheduleRow h3 { margin:0; }
+.scheduleRow p { font-size:11px; color:#869675; margin:6px 0 0; }
+.scheduleStatus,.overdue,.dueSoon { padding:4px 7px; border-radius:4px; font-size:9px; background:#edf1e4; color:#708657; }
+.overdue { background:#f7e4d9; color:#a06543; }
+.dueSoon { background:#f2e9d5; color:#8a713f; }
+.decisionList article { display:flex; justify-content:space-between; gap:20px; align-items:center; background:#fffefa; border:1px solid #dfe5d3; border-radius:9px; padding:18px 22px; margin-bottom:10px; }
+.decisionList article>div { min-width:0; }
+.decisionList small { font-size:10px; color:#8a9979; }
+.decisionList button { flex-shrink:0; }
+.next { margin-top:35px; }
+@media(max-width:850px) { .overviewGrid { grid-template-columns:1fr; } }
+@media(max-width:650px) { .overviewPanel { padding:20px; } .panelHeading h2 { font-size:26px; } .scheduleRow { grid-template-columns:1fr; gap:10px; padding:17px; } .scheduleDate { flex-direction:row; flex-wrap:wrap; align-items:center; } .decisionList article { flex-direction:column; align-items:start; padding:17px; } }
