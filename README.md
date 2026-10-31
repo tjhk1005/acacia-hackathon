@@ -234,7 +234,9 @@ For chat, saved shared weddings and sample vendor comparison, run the backend as
 | `app/planner/`, `lib/planning-api.ts` | Preferences chat, shared brief, conflict review and backend requests. |
 | `app/vendors/`, `lib/vendors.ts` | Fictional catering filters, saved comparison and quiz context. |
 | `components/personality-summary.tsx` | Shared display of every kept quiz category in planner and vendor pages. |
-| `backend/` | Validated wedding persistence, Claude/OpenAI adapters, sample vendor comparison, coordination and optional live WhatsApp messaging. |
+| `app/controller/`, `components/progress-overview.tsx`, `lib/progress.ts` | Latest updates, needs-your-input tasks, combined schedule and couple decision reminders using the existing controller. |
+| `components/progress-notice.tsx` | In-app attention and new-reply notices across quiz, planner and vendor pages. |
+| `backend/` | Validated wedding persistence, Claude/OpenAI adapters, sample vendor comparison, schedule approvals and a disabled WhatsApp pilot integration. |
 | `public/inspiration/` | Local reference photography and source credits. |
 | `tests/inspiration.test.mjs`, `tests/personality.test.mjs` | Legacy compatibility checks, continuing rerolls, kept choices, moodboard filtering, image integrity and provider-response validation. |
 
@@ -257,3 +259,9 @@ The existing backend prototype uses SQLite and requires persistent storage; do n
 5. Demonstrate a complete loop: feeling → specific preferences → vendor evidence → feasible options → one vendor conflict handled and explained to the couple.
 
 The hackathon also rewards measurable cost reduction and an explicitly licensed public repository. Measure actual workflow costs and identify which planning tasks are being automated. An open-source license has not yet been selected; choose and add one before claiming the code is openly licensed.
+
+## Planning progress and decision reminders
+
+The existing progress schedule was developed on `codex/planning-controller` and is now integrated at `/controller`; see [backend/CONTROLLER.md](backend/CONTROLLER.md). After saving a wedding in `/planner`, open **Planning progress** to see recorded vendor replies, tasks that need the couple's attention and a dated schedule. Add personal decisions such as choosing a menu, set optional deadlines, mark them done or reopen them. Vendor deliverables use the existing shared coordination records. Excluded vendors do not contribute active deadlines.
+
+Updates refresh in the app while the progress page is visible, with read-only checks. The sidebar/header notice shows tasks needing attention and new vendor replies. A failed refresh leaves the last saved view labelled rather than implying the data is current. This feature needs the existing backend but no AI key or paid notification service. Vendor communication remains simulated and no email or off-app push is sent. Explicit **Check next steps** still controls draft preparation.

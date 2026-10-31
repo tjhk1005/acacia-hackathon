@@ -17,12 +17,17 @@ export type VendorMessage = {
   status: 'draft' | 'simulated' | 'cancelled' | 'queued' | 'sending' | 'accepted' | 'sent' | 'delivered' | 'read' | 'received' | 'failed' | 'uncertain' | 'waiting_window';
   created_at: string; brief_revision?: number; ai_assisted?: boolean; source?: 'whatsapp' | 'simulation';
 };
+export type CoupleDecision = {
+  id: string; title: string; detail: string; due_at: string | null; done: boolean;
+  revision: number; created_at: string; completed_at: string | null;
+};
 export type ControllerState = {
   wedding: Wedding; revision: number; input_version: string; needs_run: boolean; last_run_at: string | null;
   tasks: Assignment[]; next_action: Assignment | null;
-  counts: { vendors: number; drafts: number; overdue: number; completed_steps: number };
+  counts: { vendors: number; drafts: number; overdue: number; completed_steps: number; needs_you: number; decisions_pending: number; overdue_decisions: number };
   coordination: { vendors: Contact[]; tasks: Deliverable[]; messages: VendorMessage[] };
   activity: { id: number; kind: string; title: string; brief_revision: number; created_at: string }[];
+  decisions: CoupleDecision[];
   mode: 'simulation' | 'mixed';
 };
 export type ControllerRun = { expected_revision: number; brief_revision: number; input_version: string; request_id: string };

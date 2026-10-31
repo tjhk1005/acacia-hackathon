@@ -86,3 +86,17 @@ The site-wide Updates inbox preserves unread schedule events and pending approva
 while the couple is away. The deadline section can propose a reschedule without
 applying it; only an explicit, current approval updates the task and cancels unsent
 old reminders. See [SCHEDULE.md](SCHEDULE.md) for the flow, routes and session scope.
+
+## Couple updates and progress schedule
+
+The page includes a latest-updates feed combining original simulated vendor replies with recorded controller and decision events. A shared schedule shows active vendor deliverables and the couple's own decision reminders. Due-soon means within 72 hours; overdue means the due time has passed. Schedule times display in Asia/Singapore; datetime inputs use the viewer's local time and are converted to UTC for storage.
+
+Couples can add a decision with a title, optional note and optional deadline, then mark it complete or reopen it. These reminders persist in `planning_decisions` and join the existing controller assignments and input-version checks. Completing a decision does not change the brief, select a vendor or create a booking. Milestone prompts (confirm details, review filters, resolve availability) still link to their source screens rather than allowing unsupported completion.
+
+Authenticated endpoints:
+
+- `POST /api/weddings/{id}/controller/decisions`: `{request_id: UUID, title, detail?: string, due_at?: timezone-aware datetime | null}`. Repeating an identical request ID/body returns the existing decision; different data with that ID returns 409.
+- `PATCH /api/weddings/{id}/controller/decisions/{decision_id}`: `{expected_revision, done: boolean}`. Stale edits return 409. Repeating the same state at the current revision does not create another event.
+- Existing controller GET now includes `decisions` and counts for `needs_you`, `decisions_pending`, and `overdue_decisions`.
+
+The progress page refreshes read-only data every 30 seconds while visible and on return to the tab. It never runs the controller or prepares vendor drafts automatically. If refresh fails, it labels the last saved progress as stale and leaves unsaved form input intact. Navigation notices on the quiz, planner and vendor pages show tasks needing attention and new vendor replies. Reply read markers are browser-local and scoped by wedding ID; opening progress marks current replies as seen. These are in-app notifications, not email, WhatsApp or browser push. No notification is delivered while the app is closed.

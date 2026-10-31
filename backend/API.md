@@ -141,3 +141,7 @@ external authentication or billing check has passed. Both providers return the s
 Vendor discovery details and calculation rules: [VENDORS.md](VENDORS.md). Its `expected_revision`
 refers to the separate vendor-selection revision; `brief_revision` refers to the wedding revision.
 All initial catering records are fictional sample data, with date availability unconfirmed.
+
+## Couple decisions and progress updates
+
+See [CONTROLLER.md](CONTROLLER.md#couple-updates-and-progress-schedule) for decision-reminder endpoints, retry and revision handling, and the shared progress schedule. Controller GET includes `decisions`; its input version changes when decisions change or deadlines cross reminder thresholds. Original simulated vendor replies appear in `coordination.messages` and remain evidence, not verified bookings or quotations. The web UI refreshes read-only progress while visible. Notification read markers are local to the browser and wedding.
