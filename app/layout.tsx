@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./personality.css";
 
 export const metadata: Metadata = {
   title: "Ever After — A little less planning. A lot more us.",

@@ -4,7 +4,7 @@ Downloaded from Pexels on 31 October 2026 for use as wedding inspiration in this
 
 These third-party photographs are governed by the [Pexels License](https://www.pexels.com/license/), which permits free use on websites and apps. The photographers and venues shown do not endorse this project. Keep original photo links and credits with the assets.
 
-The catalogue is defined in `lib/inspiration.ts`. Pinterest links are contextual searches; this project does not scrape Pinterest, reproduce Pins, use a paid image API, or claim a live popularity ranking.
+The local photo catalogue is defined in `lib/inspiration.ts`. The personality quiz also links public Pinterest image references, documented in [PINTEREST_REFERENCES.md](PINTEREST_REFERENCES.md). Those remote references are not covered by the Pexels licence. The app does not scrape Pinterest or claim a live popularity ranking. Optional live search uses the official authenticated Pinterest API when approved access is configured.
 
 | Local file | Photographer | Source |
 | --- | --- | --- |

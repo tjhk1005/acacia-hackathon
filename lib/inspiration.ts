@@ -117,4 +117,7 @@ export function rankStyles(keywords: string): WeddingStyle[] {
   return [...styles].sort((a, b) => score(b) - score(a));
 }
 export function photoPath(item: Photo) { return `/inspiration/${item.id}.jpg`; }
-export function pinterestSearch(query: string) { return `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(`${query} wedding inspiration`)}`; }
+export function pinterestSearch(query: string) {
+  const search = /\bwedding\b/i.test(query) ? query.trim() : `${query.trim()} wedding inspiration`;
+  return `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(search)}`;
+}
