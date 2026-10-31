@@ -15,6 +15,10 @@ def missing_fields(brief: WeddingBrief):
 def merge_brief(brief: WeddingBrief, patch):
     # null means unchanged; empty strings/lists explicitly clear values.
     changes = patch.model_dump(exclude_none=True)
+    if "style" in changes and changes["style"] != brief.style and "direction" not in changes:
+        changes["direction"] = ""
+    if "decor" in changes:
+        changes["decor"] = {**brief.decor.model_dump(), **changes["decor"]}
     updated = WeddingBrief.model_validate({**brief.model_dump(), **changes})
     changed = [key for key in changes if getattr(brief, key) != getattr(updated, key)]
     return updated, changed

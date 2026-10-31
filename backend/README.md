@@ -2,9 +2,10 @@
 
 First milestone: website → preferences specialist → persistent, editable wedding brief.
 
-This is an independent Python/FastAPI service. It does not modify the Next.js website on
-`origin/codex/wedding-planner-plan`. Its `brief` format matches that branch's `lib/wedding.ts`,
-including string-valued `guests` and `budget`, camelCase `flexibleDate`, and the three style IDs.
+This Python/FastAPI service is connected to the Next.js website through `/planning-api/*`.
+Its `brief` format matches `lib/wedding.ts`, including string-valued `guests` and `budget`,
+camelCase `flexibleDate`, all eight settings, the specific `direction`, and the three `decor` fields.
+Legacy `coastal` values migrate to `beach`; existing database records load with empty visual fields.
 
 ## Run
 
@@ -33,7 +34,9 @@ The website can keep its current onboarding and upload its existing brief on cre
 Use the returned wedding ID, token and revision for subsequent edits and chat.
 Local-storage-only briefs do not automatically appear in the backend; create them explicitly once.
 An empty create uses unknown values for guest count, budget and location, rather than treating
-the website's suggested values as confirmed preferences. `garden` remains a display default.
+the website's suggested values as confirmed preferences. An empty setting means still exploring.
+The planner page lets couples explicitly import a local brief and resolve differences when returning
+from the visual screens. Its per-wedding bearer token is held in tab session storage.
 
 ## Structure and ownership
 

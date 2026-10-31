@@ -60,7 +60,10 @@ def create_app(database_path=None, agent=None):
     @app.patch("/api/weddings/{wedding_id}", response_model=WeddingResponse)
     def update_wedding(wedding_id: str, body: UpdateWedding, x_wedding_token: Optional[str] = Header(None)):
         row = store.get(wedding_id, x_wedding_token)
-        brief, changed = merge_brief(WeddingBrief.model_validate_json(row["brief"]), body.brief)
+        try:
+            brief, changed = merge_brief(WeddingBrief.model_validate_json(row["brief"]), body.brief)
+        except ValidationError:
+            raise HTTPException(422, "Choose a direction within your selected setting, or clear the direction.")
         status = "draft" if changed else row["status"]
         return store.save(wedding_id, body.expected_revision, brief, status)
 

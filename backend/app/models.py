@@ -4,11 +4,26 @@ from decimal import Decimal, InvalidOperation
 from typing import List, Literal, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class Model(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
+
+Style = Literal["", "garden", "beach", "classic", "modern", "rustic", "bohemian", "tropical", "intimate"]
+
+
+class DecorPatch(Model):
+    florals: Optional[str] = Field(default=None, max_length=1000)
+    lighting: Optional[str] = Field(default=None, max_length=1000)
+    tables: Optional[str] = Field(default=None, max_length=1000)
+
+
+class Decor(DecorPatch):
+    florals: str = Field(default="", max_length=1000)
+    lighting: str = Field(default="", max_length=1000)
+    tables: str = Field(default="", max_length=1000)
 
 
 class BriefPatch(Model):
@@ -19,9 +34,16 @@ class BriefPatch(Model):
     guests: Optional[str] = Field(default=None, max_length=10)
     budget: Optional[str] = Field(default=None, max_length=32)
     keywords: Optional[str] = Field(default=None, max_length=1000)
-    style: Optional[Literal["garden", "modern", "coastal"]] = None
+    style: Optional[Style] = None
+    direction: Optional[str] = Field(default=None, max_length=100)
+    decor: Optional[DecorPatch] = None
     priorities: Optional[List[str]] = Field(default=None, max_length=20)
     notes: Optional[str] = Field(default=None, max_length=8000)
+
+    @field_validator("style", mode="before")
+    @classmethod
+    def migrate_coastal(cls, value):
+        return "beach" if value == "coastal" else value
 
     @field_validator("date")
     @classmethod
@@ -73,9 +95,17 @@ class WeddingBrief(BriefPatch):
     guests: str = Field(default="", max_length=10)
     budget: str = Field(default="", max_length=32)
     keywords: str = Field(default="", max_length=1000)
-    style: Literal["garden", "modern", "coastal"] = "garden"
+    style: Style = ""
+    direction: str = Field(default="", max_length=100)
+    decor: Decor = Field(default_factory=Decor)
     priorities: List[str] = Field(default_factory=list, max_length=20)
     notes: str = Field(default="", max_length=8000)
+
+    @model_validator(mode="after")
+    def valid_direction(self):
+        if self.direction and self.direction not in [f"{self.style}-{index}" for index in range(8)]:
+            raise ValueError("direction must belong to the selected setting (for example garden-0)")
+        return self
 
 
 class CreateWedding(Model):

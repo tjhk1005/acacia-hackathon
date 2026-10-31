@@ -38,6 +38,8 @@ revision; fetch the wedding again before allowing more edits.
     "budget": "20000",
     "keywords": "soft florals, warm lighting",
     "style": "garden",
+    "direction": "garden-0",
+    "decor": {"florals": "White roses", "lighting": "Candles", "tables": "Round tables"},
     "priorities": ["Beautiful food", "Photography"],
     "notes": "Halal food required. Step-free access."
   },
@@ -58,7 +60,11 @@ Money is SGD in this milestone; numeric strings prevent frontend/backend decimal
 must clarify budget scope rather than treating a catering budget as the overall wedding budget.
 The per-guest number divides the total wedding budget; it is not an estimated vendor price.
 
-`style` is `garden`, `modern` or `coastal`; `garden` on an untouched brief is a display default.
+`style` is empty or one of `garden`, `beach`, `classic`, `modern`, `rustic`, `bohemian`, `tropical`,
+`intimate`. Legacy `coastal` input normalizes to `beach`. `direction` is empty or `<style>-0` through
+`<style>-7`, matching the website catalogue. Changing style clears direction unless a compatible
+direction is supplied. Nested `decor` patches merge individual florals/lighting/tables values;
+unrelated choices are preserved. Empty strings clear individual values.
 Unknown text/numbers/dates are `""`; `priorities` can be `[]`. In patches, omitted/null fields mean
 unchanged; `""`/`[]` clear fields. Guests must be 1–10000; budgets must be positive, finite and
 have at most two decimal places. A date, when provided, must be a real YYYY-MM-DD date.
@@ -95,3 +101,10 @@ failed AI calls. A revision conflict after inference also saves no chat turn.
 
 This service has prototype wedding-token access, not account login/invite flows. Keep tokens secret.
 The two collaborators' views should refresh after writes; live push updates are not implemented.
+
+## Connected planner page
+
+The website's `/planner` page uses a same-origin `/planning-api` proxy. It stores the wedding ID
+and prototype token in tab session storage, and a local brief snapshot alongside visual onboarding.
+It asks before importing that local snapshot and before replacing a differing server brief on return.
+Chat is disabled when `/health` reports `ai_configured=false`; manual editing remains available.
