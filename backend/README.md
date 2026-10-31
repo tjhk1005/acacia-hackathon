@@ -23,9 +23,11 @@ Open `http://127.0.0.1:8000/docs` for the interactive API, or `/openapi.json` fo
 For the exact dependency versions tested here, install `backend/requirements-dev.lock` instead.
 The frontend stays on port 3000. Configure `CORS_ORIGINS` for its exact origin.
 Brief editing, persistence, validation, confirmation and budget summaries work without an AI key.
-To enable chat, set `OPENAI_API_KEY` and `OPENAI_MODEL` in `backend/.env`, then restart the service.
-Use a model available to your API account that supports Responses structured outputs.
-The configurable starting model is `gpt-4o-mini`; no key or paid API calls are bundled.
+To enable Claude chat, set `AI_PROVIDER=anthropic`, `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL`
+in `backend/.env`, then restart the service. The starting model is `claude-haiku-5-5`.
+For OpenAI instead, set `AI_PROVIDER=openai`, `OPENAI_API_KEY` and `OPENAI_MODEL` (default:
+`gpt-4o-mini`). Only the selected provider's credential is used. A key from one provider cannot
+authenticate with the other. Keys and paid API credits are not bundled with the project.
 
 ## Website integration
 
@@ -41,7 +43,7 @@ from the visual screens. Its per-wedding bearer token is held in tab session sto
 ## Structure and ownership
 
 - `app/models.py`: shared API validation and structured AI output.
-- `app/agents.py`: preferences specialist; one bounded AI request per chat turn.
+- `app/agents.py`: Claude/OpenAI adapters for the same preferences specialist; one bounded AI request per chat turn.
 - `app/main.py`: controller/endpoints; applies validated patches and coordinates persistence.
 - `app/planning.py`: deterministic validation and SGD budget-per-guest calculation.
 - `app/store.py`: SQLite persistence, brief revisions, chat history and replay of completed requests.
@@ -64,7 +66,7 @@ cd backend
 .venv/bin/python -m pytest
 ```
 
-Tests cover frontend-compatible briefs, invalid data, cross-wedding access, persistence after restart,
+Tests cover both SDK adapters and provider selection, frontend-compatible briefs, invalid data, cross-wedding access, persistence after restart,
 confirmation, corrections, partial patches, chat history, retry replay, concurrent edits, AI failures,
 unconfigured AI, CORS, and exact decimal budget calculations. Live model quality still needs testing
 with the team's API key; simulated responses do not establish extraction quality.
@@ -82,8 +84,10 @@ Keep it out of URLs, logs and source control. Full user accounts, invitations, r
 limits and production deployment are future work. Keep the development service on loopback.
 
 Wedding data and chat are stored locally in SQLite. Using AI chat sends the saved brief and up to
-12 recent messages to the configured AI provider with response storage disabled (`store=False`).
-That flag is not a promise about provider retention. Keys, wedding data and virtual environments
+12 recent messages to the selected AI provider. OpenAI requests disable response storage
+(`store=False`); Claude requests use the Messages API. Provider-specific retention terms still apply.
+Keys, wedding data and virtual environments
 are excluded from Git. The project has not yet selected an open-source license.
 
 AI integration reference: [OpenAI structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs).
+Claude integration reference: [Anthropic structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs).

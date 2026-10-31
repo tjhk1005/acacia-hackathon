@@ -8,9 +8,10 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from openai import APIError, APITimeoutError
+from anthropic import APIError as ClaudeAPIError, APITimeoutError as ClaudeTimeoutError
 from pydantic import ValidationError
 
-from .agents import PreferencesAgent
+from .agents import configured_agent
 from .models import (ChatRequest, ChatResponse, ConfirmWedding, CreateResponse,
                      CreateWedding, MessagesResponse, UpdateWedding, WeddingBrief, WeddingResponse)
 from .planning import merge_brief, missing_fields, serialize_wedding
@@ -22,9 +23,8 @@ load_dotenv(ROOT / ".env")
 
 def create_app(database_path=None, agent=None):
     owned_agent = agent is None
-    configured_key = os.getenv("OPENAI_API_KEY", "").strip()
-    if agent is None and configured_key:
-        agent = PreferencesAgent(configured_key, os.getenv("OPENAI_MODEL", "gpt-4o-mini"))
+    if agent is None:
+        agent = configured_agent()
     path = Path(database_path or os.getenv("DATABASE_PATH", "data/weddings.sqlite3"))
     if not path.is_absolute():
         path = ROOT / path
@@ -47,7 +47,8 @@ def create_app(database_path=None, agent=None):
 
     @app.get("/health")
     def health():
-        return {"status": "ok", "ai_configured": agent is not None, "version": "0.1.0"}
+        return {"status": "ok", "ai_configured": agent is not None,
+                "ai_provider": getattr(agent, "provider", None), "version": "0.1.0"}
 
     @app.post("/api/weddings", status_code=201, response_model=CreateResponse)
     def create_wedding(body: CreateWedding):
@@ -91,14 +92,14 @@ def create_app(database_path=None, agent=None):
         if row["revision"] != body.expected_revision:
             raise HTTPException(409, "The wedding changed. Fetch the latest revision and retry.")
         if agent is None:
-            raise HTTPException(503, {"code": "ai_not_configured", "message": "Set OPENAI_API_KEY on the backend to enable preference chat. Brief editing still works."})
+            raise HTTPException(503, {"code": "ai_not_configured", "message": "Configure the selected AI provider on the backend to enable preference chat. Brief editing still works."})
         brief = WeddingBrief.model_validate_json(row["brief"])
         try:
             result = await agent.extract(brief, store.history(wedding_id, limit=12), body.message)
             updated, changed = merge_brief(brief, result.updates)
-        except APITimeoutError:
+        except (APITimeoutError, ClaudeTimeoutError):
             raise HTTPException(504, "The AI request timed out. The wedding was not changed.")
-        except (APIError, ValueError, ValidationError):
+        except (APIError, ClaudeAPIError, ValueError, ValidationError):
             raise HTTPException(502, "Could not obtain a valid AI response. The wedding was not changed.")
         status = "draft" if changed else row["status"]
         return store.save(

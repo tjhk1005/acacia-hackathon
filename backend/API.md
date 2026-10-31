@@ -8,7 +8,7 @@ Set the base URL in the frontend's configuration; never expose an AI API key the
 
 | Method | Path | Request | Response |
 | --- | --- | --- | --- |
-| GET | `/health` | — | `{status, ai_configured, version}` |
+| GET | `/health` | — | `{status, ai_configured, ai_provider, version}` |
 | POST | `/api/weddings` | `{}` or `{brief: WeddingBrief}` | `{wedding, access_token}` |
 | GET | `/api/weddings/{id}` | — | `{wedding}` |
 | PATCH | `/api/weddings/{id}` | `{expected_revision, brief: Partial<WeddingBrief>}` | `{wedding}` |
@@ -108,3 +108,7 @@ The website's `/planner` page uses a same-origin `/planning-api` proxy. It store
 and prototype token in tab session storage, and a local brief snapshot alongside visual onboarding.
 It asks before importing that local snapshot and before replacing a differing server brief on return.
 Chat is disabled when `/health` reports `ai_configured=false`; manual editing remains available.
+
+`ai_provider` identifies the selected adapter (`anthropic` or `openai`). Provider choice and API keys
+are configured only on the backend. `ai_configured=true` means a credential is present, not that an
+external authentication or billing check has passed. Both providers return the same chat response.

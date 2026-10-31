@@ -3,6 +3,7 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 from openai import APIConnectionError, APITimeoutError
+from anthropic import APIConnectionError as ClaudeConnectionError, APITimeoutError as ClaudeTimeoutError
 import httpx
 
 from app.main import create_app
@@ -129,6 +130,7 @@ def test_token_cannot_access_another_wedding(setup):
 
 def test_unconfigured_ai_keeps_manual_editing(tmp_path, monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     with TestClient(create_app(tmp_path / "no-key.sqlite3")) as client:
         assert client.get("/health").json()["ai_configured"] is False
         created = client.post("/api/weddings", json={}).json()
@@ -142,7 +144,9 @@ def test_unconfigured_ai_keeps_manual_editing(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize("error,expected", [(ValueError("invalid"), 502),
     (APITimeoutError(request=httpx.Request("POST", "https://example.test")), 504),
-    (APIConnectionError(request=httpx.Request("POST", "https://example.test")), 502)])
+    (APIConnectionError(request=httpx.Request("POST", "https://example.test")), 502),
+    (ClaudeTimeoutError(request=httpx.Request("POST", "https://example.test")), 504),
+    (ClaudeConnectionError(request=httpx.Request("POST", "https://example.test")), 502)])
 def test_ai_failures_do_not_save_partial_turn(setup, error, expected):
     client, agent, wedding_id, headers = setup
     async def fail(*args):

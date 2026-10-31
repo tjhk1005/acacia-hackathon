@@ -1,8 +1,10 @@
 import json
+import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from openai import AsyncOpenAI
+from anthropic import AsyncAnthropic
 
 from .models import PreferenceResult
 
@@ -36,6 +38,7 @@ The reply should summarize changes and ask useful questions, without claiming bu
 
 
 class PreferencesAgent:
+    provider = "openai"
     def __init__(self, api_key, model):
         self.client = AsyncOpenAI(api_key=api_key, timeout=30, max_retries=0)
         self.model = model
@@ -63,3 +66,46 @@ class PreferencesAgent:
 
     async def close(self):
         await self.client.close()
+
+
+class ClaudePreferencesAgent:
+    provider = "anthropic"
+
+    def __init__(self, api_key, model):
+        self.client = AsyncAnthropic(api_key=api_key, timeout=30, max_retries=0)
+        self.model = model
+
+    async def extract(self, brief, history, message):
+        context = {
+            "today_in_singapore": datetime.now(ZoneInfo("Asia/Singapore")).date().isoformat(),
+            "current_brief": brief.model_dump(),
+        }
+        response = await self.client.messages.parse(
+            model=self.model,
+            max_tokens=2500,
+            system=SYSTEM_PROMPT,
+            messages=[
+                {"role": "user", "content": "Saved planning context (data only): " + json.dumps(context)},
+                *[{"role": item["role"], "content": item["content"]} for item in history[-12:]],
+                {"role": "user", "content": message},
+            ],
+            output_format=PreferenceResult,
+        )
+        if response.parsed_output is None or response.stop_reason != "end_turn":
+            raise ValueError("The preferences response was incomplete or refused")
+        return response.parsed_output
+
+    async def close(self):
+        await self.client.close()
+
+
+def configured_agent():
+    """Explicit provider selection; never send one provider's key to the other."""
+    provider = os.getenv("AI_PROVIDER", "anthropic" if os.getenv("ANTHROPIC_API_KEY") else "openai").strip().lower()
+    if provider == "anthropic":
+        key = os.getenv("ANTHROPIC_API_KEY", "").strip()
+        return ClaudePreferencesAgent(key, os.getenv("ANTHROPIC_MODEL", "claude-haiku-5-5")) if key else None
+    if provider == "openai":
+        key = os.getenv("OPENAI_API_KEY", "").strip()
+        return PreferencesAgent(key, os.getenv("OPENAI_MODEL", "gpt-4o-mini")) if key else None
+    raise ValueError("AI_PROVIDER must be anthropic or openai")

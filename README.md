@@ -18,8 +18,10 @@ Next.js forwards `/planning-api/*` to `http://127.0.0.1:8000` by default. Set `P
 in the website's `.env.local` to use a different backend, then restart Next.js. Hosted deployments
 need a reachable backend URL with persistent storage; pushing code alone doesn't deploy that service.
 
-Set `OPENAI_API_KEY` and `OPENAI_MODEL` in `backend/.env` to enable live chat, then restart the
-backend. No AI key belongs in the website or any `NEXT_PUBLIC_` variable. Without a key, the
+For Claude, set `AI_PROVIDER=anthropic`, `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL` in
+`backend/.env`, then restart the backend. The default Claude model is `claude-haiku-5-5`.
+OpenAI is also supported with `AI_PROVIDER=openai`, `OPENAI_API_KEY` and `OPENAI_MODEL`.
+No AI key belongs in the website or any `NEXT_PUBLIC_` variable. Without a key, the
 planner clearly explains the connection state and still supports manual brief editing and confirmation.
 
 ```sh
