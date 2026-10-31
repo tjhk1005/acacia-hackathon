@@ -46,6 +46,7 @@ from the visual screens. Its per-wedding bearer token is held in tab session sto
 - `app/main.py`: controller/endpoints; applies validated patches and coordinates persistence.
 - `app/planning.py`: deterministic validation and SGD budget-per-guest calculation.
 - `app/store.py`: SQLite persistence, brief revisions, chat history and replay of completed requests.
+- `app/controller.py`: next-step decisions, role assignments, dependencies, bounded shared tools and activity persistence. See [CONTROLLER.md](CONTROLLER.md).
 - `app/vendors.py`: fictional catering catalogue, deterministic package estimates and saved shortlists.
 - `tests/`: integration tests using a simulated specialist; no external messages or AI spend.
 

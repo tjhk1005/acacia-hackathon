@@ -1,6 +1,6 @@
 # Vendor coordination prototype
 
-The coordinator shares the integrated backend's wedding record, including the complete version-3 personality. The Next.js quiz, `/planner` and `/vendors` use that same brief when explicitly synced. This separate developer dashboard still requires reconnecting with the wedding ID and private token; catering shortlists do not automatically become coordinator vendors or enquiries.
+The coordinator shares the integrated backend's wedding record, including the complete version-3 personality. The Next.js quiz, `/planner`, `/vendors` and `/controller` use that same brief when explicitly synced. The website controller provides a vendor desk with the existing session. This separate developer dashboard still requires reconnecting with the wedding ID and private token; catering shortlists do not automatically become coordinator vendors or enquiries.
 
 ## Run
 
@@ -36,11 +36,19 @@ All paths below are relative to `/api/weddings/{id}/coordination`:
 
 - `GET /`: current vendor, task and message state.
 - `POST /vendors`: `name`, `category`, `channel`, `contact`.
+- `POST /vendors/{vendor_id}/participation`: `{active: false}` excludes a vendor and cancels pending drafts; `{active: true}` reconsiders them with availability unknown. History is retained.
 - `POST /tasks`: `vendor_id`, `title`, timezone-aware `due_at`.
 - `POST /tasks/{task_id}/complete`: complete task and cancel pending reminder.
 - `POST /vendors/{vendor_id}/replies`: original `content`, explicitly annotated `availability` (`unknown`, `available`, `unavailable`).
+- Include `brief_revision` when recording availability to reject annotations against a stale date. The controller website includes it; the older standalone demo remains compatible without it.
 - `POST /run`: optional `reminder_hours` (1–168, default 72).
 - `POST /messages/{message_id}/refine`: optional AI rewrite; retains draft status.
 - `POST /messages/{message_id}/approve`: idempotent simulated delivery, rejects stale/cancelled drafts.
 
 Run validation with `backend/.venv/bin/pytest -q backend/tests`.
+
+Both coordinator and controller draft preparation use the same keys and a limit of
+20 new drafts per run. Re-run to prepare any remaining drafts. Excluded vendors are
+ignored; unavailable vendors receive no new deadline reminders. Completed tasks
+cancel their pending reminders. Only actual planning-state changes invalidate
+availability and drafts; conversation-only turns preserve them.

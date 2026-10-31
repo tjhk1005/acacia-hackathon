@@ -1,7 +1,7 @@
 """Evidence-backed coordination in simulated transport mode."""
 import json
 from datetime import datetime, timedelta, timezone
-from typing import Literal
+from typing import Literal, Optional
 from uuid import uuid4
 
 from fastapi import APIRouter, Header, HTTPException
@@ -29,10 +29,62 @@ class Task(Model):
 class Reply(Model):
     content: str = Field(min_length=1, max_length=4000)
     availability: Literal['unknown', 'available', 'unavailable'] = 'unknown'
+    brief_revision: Optional[int] = Field(default=None, ge=0)
 
 
 class Run(Model):
     reminder_hours: int = Field(default=72, ge=1, le=168)
+
+
+class Participation(Model):
+    active: bool
+
+
+def load_coordination(db, wedding):
+    row = db.execute('SELECT state FROM coordination WHERE wedding_id=?', (wedding['id'],)).fetchone()
+    state = json.loads(row['state']) if row else {'vendors': [], 'tasks': [], 'messages': []}
+    for vendor in state['vendors']:
+        if vendor['availability_revision'] != wedding['revision']:
+            vendor.update(availability='unknown', evidence_id=None)
+    for message in state['messages']:
+        if message['status'] == 'draft' and message['brief_revision'] != wedding['revision']:
+            message['status'] = 'cancelled'
+    return state
+
+
+def save_coordination(db, wedding_id, state):
+    db.execute('INSERT INTO coordination VALUES (?,?) ON CONFLICT(wedding_id) DO UPDATE SET state=excluded.state',
+               (wedding_id, json.dumps(state)))
+
+
+def prepare_drafts(state, wedding, reminder_hours=72, timestamp=None, limit=20):
+    """A bounded, shared draft-only tool. Existing keys make re-runs harmless."""
+    timestamp = timestamp or datetime.now(timezone.utc)
+    brief = json.loads(wedding['brief'])
+    existing = {message.get('key') for message in state['messages'] if message['status'] != 'cancelled'}
+    created = []
+
+    def add(vendor, key, content):
+        if key in existing or len(created) >= limit:
+            return
+        message = dict(id=str(uuid4()), vendor_id=vendor['id'], key=key, content=content,
+                       direction='outgoing', status='draft', brief_revision=wedding['revision'],
+                       created_at=timestamp.isoformat())
+        state['messages'].append(message)
+        existing.add(key)
+        created.append(message)
+
+    for vendor in state['vendors']:
+        if vendor.get('active', True) and brief['date'] and vendor['availability'] == 'unknown':
+            add(vendor, f"availability:{vendor['id']}:{wedding['revision']}",
+                f"Hello {vendor['name']}, are you available for a wedding on {brief['date']} in {brief['location'] or 'a location to be confirmed'}? Please share your capacity, pricing, inclusions and exclusions. This is an enquiry, not a booking.")
+    vendors = {vendor['id']: vendor for vendor in state['vendors']}
+    for task in state['tasks']:
+        vendor = vendors.get(task['vendor_id'])
+        if vendor and vendor.get('active', True) and vendor['availability'] != 'unavailable' and not task['done'] and datetime.fromisoformat(task['due_at'].replace('Z', '+00:00')) <= timestamp + timedelta(hours=reminder_hours):
+            add(vendor, 'reminder:' + task['id'] + ':' + str(wedding['revision']),
+                f"Hello {vendor['name']}, reminder: {task['title']} is due {task['due_at']}. Please share an update or flag any delay.")
+    return created
 
 
 def coordinator_router(store, agent=None):
@@ -46,16 +98,9 @@ def coordinator_router(store, agent=None):
             db.execute('BEGIN IMMEDIATE')
             # Read current brief within the same transaction as draft creation/delivery.
             wedding = db.execute('SELECT * FROM weddings WHERE id=?', (wedding_id,)).fetchone()
-            row = db.execute('SELECT state FROM coordination WHERE wedding_id=?', (wedding_id,)).fetchone()
-            state = json.loads(row['state']) if row else {'vendors': [], 'tasks': [], 'messages': []}
-            for vendor in state['vendors']:
-                if vendor['availability_revision'] != wedding['revision']:
-                    vendor.update(availability='unknown', evidence_id=None)
-            for message in state['messages']:
-                if message['status'] == 'draft' and message['brief_revision'] != wedding['revision']:
-                    message['status'] = 'cancelled'
+            state = load_coordination(db, wedding)
             result = operation(state, wedding)
-            db.execute('INSERT INTO coordination VALUES (?,?) ON CONFLICT(wedding_id) DO UPDATE SET state=excluded.state', (wedding_id, json.dumps(state)))
+            save_coordination(db, wedding_id, state)
             return result
 
     def find(items, identifier):
@@ -64,13 +109,6 @@ def coordinator_router(store, agent=None):
             raise HTTPException(404, 'Record not found')
         return item
 
-    def draft(state, wedding, vendor, key, text):
-        # One reminder per task deadline; one enquiry per brief revision.
-        if any(m.get('key') == key for m in state['messages']):
-            return
-        state['messages'].append(dict(id=str(uuid4()), vendor_id=vendor['id'], key=key,
-            content=text, direction='outgoing', status='draft', brief_revision=wedding['revision'], created_at=now()))
-
     @router.get('')
     def overview(wedding_id: str, x_wedding_token: str = Header(default='')):
         return transaction(wedding_id, x_wedding_token, lambda state, _: dict(state, mode='simulation'))
@@ -78,15 +116,32 @@ def coordinator_router(store, agent=None):
     @router.post('/vendors', status_code=201)
     def add_vendor(wedding_id: str, body: Vendor, x_wedding_token: str = Header(default='')):
         def operation(state, wedding):
-            vendor = dict(body.model_dump(), id=str(uuid4()), availability='unknown', evidence_id=None, availability_revision=None)
+            vendor = dict(body.model_dump(), id=str(uuid4()), active=True, availability='unknown', evidence_id=None, availability_revision=None)
             state['vendors'].append(vendor)
+            return vendor
+        return transaction(wedding_id, x_wedding_token, operation)
+
+    @router.post('/vendors/{vendor_id}/participation')
+    def participation(wedding_id: str, vendor_id: str, body: Participation, x_wedding_token: str = Header(default='')):
+        def operation(state, wedding):
+            vendor = find(state['vendors'], vendor_id)
+            if vendor.get('active', True) == body.active:
+                return vendor
+            vendor['active'] = body.active
+            if body.active:
+                vendor.update(availability='unknown', evidence_id=None, availability_revision=None)
+            else:
+                for message in state['messages']:
+                    if message['vendor_id'] == vendor_id and message['status'] == 'draft':
+                        message['status'] = 'cancelled'
             return vendor
         return transaction(wedding_id, x_wedding_token, operation)
 
     @router.post('/tasks', status_code=201)
     def add_task(wedding_id: str, body: Task, x_wedding_token: str = Header(default='')):
         def operation(state, wedding):
-            find(state['vendors'], body.vendor_id)
+            if not find(state['vendors'], body.vendor_id).get('active', True):
+                raise HTTPException(409, 'Restore this vendor before adding a deliverable')
             task = dict(body.model_dump(mode='json'), id=str(uuid4()), done=False)
             state['tasks'].append(task)
             return task
@@ -106,6 +161,8 @@ def coordinator_router(store, agent=None):
     @router.post('/vendors/{vendor_id}/replies', status_code=201)
     def reply(wedding_id: str, vendor_id: str, body: Reply, x_wedding_token: str = Header(default='')):
         def operation(state, wedding):
+            if body.brief_revision is not None and body.brief_revision != wedding['revision']:
+                raise HTTPException(409, 'Wedding changed. Review the date before annotating availability.')
             vendor = find(state['vendors'], vendor_id)
             message = dict(id=str(uuid4()), vendor_id=vendor_id, content=body.content, direction='incoming', status='simulated', created_at=now())
             state['messages'].append(message)
@@ -117,18 +174,7 @@ def coordinator_router(store, agent=None):
     @router.post('/run')
     def run(wedding_id: str, body: Run, x_wedding_token: str = Header(default='')):
         def operation(state, wedding):
-            brief = json.loads(wedding['brief'])
-            for vendor in state['vendors']:
-                if vendor['availability_revision'] != wedding['revision']:
-                    vendor['availability'] = 'unknown'
-                    vendor['evidence_id'] = None
-                if brief['date'] and vendor['availability'] == 'unknown':
-                    draft(state, wedding, vendor, f"availability:{vendor['id']}:{wedding['revision']}",
-                        f"Hello {vendor['name']}, are you available for a wedding on {brief['date']} in {brief['location'] or 'a location to be confirmed'}? Please share your capacity, pricing, inclusions and exclusions. This is an enquiry, not a booking.")
-            for task in state['tasks']:
-                if not task['done'] and datetime.fromisoformat(task['due_at'].replace('Z', '+00:00')) <= datetime.now(timezone.utc) + timedelta(hours=body.reminder_hours):
-                    vendor = find(state['vendors'], task['vendor_id'])
-                    draft(state, wedding, vendor, 'reminder:' + task['id'] + ':' + str(wedding['revision']), f"Hello {vendor['name']}, reminder: {task['title']} is due {task['due_at']}. Please share an update or flag any delay.")
+            prepare_drafts(state, wedding, body.reminder_hours)
             return dict(state, mode='simulation', note='Rule-based coordinator. Drafts require approval; no external messages are sent.')
         return transaction(wedding_id, x_wedding_token, operation)
 

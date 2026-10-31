@@ -14,6 +14,7 @@ from pydantic import ValidationError
 
 from .agents import configured_agent
 from .coordinator import coordinator_router
+from .controller import controller_router
 from .models import (ChatRequest, ChatResponse, ConfirmWedding, CreateResponse,
                      CreateWedding, MessagesResponse, UpdateWedding, WeddingBrief, WeddingResponse)
 from .planning import merge_brief, missing_fields, serialize_wedding
@@ -131,6 +132,7 @@ def create_app(database_path=None, agent=None):
         )
 
     app.include_router(coordinator_router(store, agent))
+    app.include_router(controller_router(store))
     return app
 
 

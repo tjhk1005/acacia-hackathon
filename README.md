@@ -16,7 +16,7 @@ The latest personality quiz, planner chat, catering discovery and backend are in
 | Planner chat / Agent 1 | `/planner` imports the full quiz and planning details, stores the wedding and chat in the backend, and supports Claude or OpenAI. Requires a running backend; AI chat needs its configured key. |
 | Vendor comparison | `/vendors` uses the same saved wedding and displays the full personality. Six fictional catering packages, deterministic estimates and saved comparisons; aesthetic fit and real availability are not scored. |
 | Vendor communication / Agent 2 | Enquiry and reminder drafts, manually recorded replies, and approved simulated deliveries in the backend coordinator. No real WhatsApp or Telegram transport. |
-| Overall coordination / Agent 4 | Rule-based enquiry/reminder generation when manually run. Background scheduling, dependency resolution and autonomous conflict handling remain planned. |
+| Overall coordination / Agent 4 | `/controller` diagnoses the next step, assigns roles and dependencies, flags unavailable vendors and deadlines, prepares bounded drafts, and persists activity. Runs on demand; external delivery, background scheduling and autonomous conflict resolution remain planned. See [controller details](backend/CONTROLLER.md). |
 | Four-agent workflow | Roles are confirmed below. Real quote extraction, complete wedding-plan comparison and automated handoffs are not complete. |
 
 The quiz and reference images work without paid APIs. Backend manual editing, sample catering comparison and simulated coordination also work without an AI key. Claude/OpenAI calls require the selected provider's key and use its credits. Live provider quality and billing must be checked separately from mocked tests.

@@ -17,6 +17,8 @@ Set the base URL in the frontend's configuration; never expose an AI API key the
 | POST | `/api/weddings/{id}/confirm` | `{expected_revision}` | `{wedding}` |
 | GET | `/api/weddings/{id}/vendors` | — | Saved catering filters, shortlist, matching results and sample estimates. |
 | PATCH | `/api/weddings/{id}/vendors` | `{expected_revision, brief_revision, criteria?, shortlisted_ids?}` | Updated vendor discovery state. |
+| GET | `/api/weddings/{id}/controller` | — | Current assignments, next action, vendor desk and activity. |
+| POST | `/api/weddings/{id}/controller/run` | `{expected_revision, brief_revision, input_version, request_id}` | Persisted plan and up to 20 newly prepared message drafts. |
 
 Every wedding-specific request needs `X-Wedding-Token: <access_token>`. Tokens are returned only
 on create. The create response's `wedding.revision` is 0. Changes to the brief or its
@@ -24,6 +26,9 @@ confirmation status increment it. Unchanged chat turns, identical edits and repe
 confirmation preserve the revision and `updated_at`; chat history and request replay are
 still saved atomically. Stale expected revisions are rejected even for unchanged turns.
 Vendor selections have their own revision (see below).
+
+The controller also has its own revision. Use its returned input version and a UUID
+for atomic retries and stale-input checks; see [CONTROLLER.md](CONTROLLER.md).
 For chat, generate a UUID `request_id` and preserve the entire request body when retrying a timeout.
 If a completed request is replayed later, it returns the original snapshot, which may have an older
 revision; fetch the wedding again before allowing more edits.

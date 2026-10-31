@@ -155,6 +155,7 @@ export default function Home() {
         <button className={`nav-item ${view==='details'?'active':''}`} disabled={!profile.complete} onClick={openDetails}><ClipboardList size={18}/>Plan the details<span className="nav-hint">Later</span></button>
         <Link className="nav-item" href="/planner"><Sparkles size={18}/>Your planner<span className="nav-hint">Chat</span></Link>
         <Link className="nav-item" href="/vendors"><Users size={18}/>Your vendors<span className="nav-hint">Compare</span></Link>
+        <Link className="nav-item" href="/controller"><ClipboardList size={18}/>Planning progress<span className="nav-hint">Next steps</span></Link>
       </nav>
       <div className="sidebar-note"><Leaf size={22}/><p>There’s no one<br/>kind of beautiful.<br/>There’s your kind.</p><span>Keep what feels like the two of you.</span></div>
       <div className="profile"><span className="avatar"><Heart size={17}/></span><div><strong>{brief.names||'Your next chapter'}</strong><span>{allKept.length} ideas that feel like you</span></div></div>
