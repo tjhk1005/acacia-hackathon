@@ -61,13 +61,12 @@ export default function PlannerPage() {
       } catch { if (active) setNotice('Browser storage isn’t available. Keep this tab open to retain your planning session.'); }
       if (active && current) setSession(current);
       try {
-        const health = await planningRequest<{ ai_configured: boolean }>('/health');
-        if (active) setAiReady(health.ai_configured);
+        void planningRequest<{ ai_configured: boolean }>('/health', null, undefined, 'GET', 5000).then(health=>{if(active)setAiReady(health.ai_configured)}).catch(issue=>{if(active){setAiReady(null);if(issue instanceof PlanningError&&issue.code==='database_not_configured')setError(issue.message)}});
         if (current && active) {
           setSession(current);
           const [state, history] = await Promise.all([
-            planningRequest<{ wedding: Wedding }>(`/api/weddings/${current.id}`, current),
-            planningRequest<{ messages: Message[] }>(`/api/weddings/${current.id}/messages`, current),
+            planningRequest<{ wedding: Wedding }>(`/api/weddings/${current.id}`, current, undefined, 'GET', 8000),
+            planningRequest<{ messages: Message[] }>(`/api/weddings/${current.id}/messages`, current, undefined, 'GET', 8000),
           ]);
           if (active) {
             const differs = imported && !briefsMatch(imported, state.wedding.brief);
@@ -75,7 +74,13 @@ export default function PlannerPage() {
             accept(state.wedding, !differs); setMessages(history.messages);
           }
         }
-      } catch (issue) { if (active) setError((issue as Error).message); }
+      } catch (issue) {
+        if(active && issue instanceof PlanningError && issue.code==='wedding_not_found'){
+          setSession(null);
+          try{sessionStorage.removeItem(SESSION_STORAGE)}catch{}
+          setNotice('Your previous conversation is unavailable. Your browser-saved vision is kept; continue below to create a new conversation.');
+        }else if(active)setError((issue as Error).message);
+      }
       finally { if (active) setLoading(false); }
     }
     void restore();
@@ -156,11 +161,12 @@ export default function PlannerPage() {
           accept(result.wedding); setIncomingBrief(null); setQuestions([]); setChanged([]); setPendingTurn(null); setNotice('Your latest quiz choices and planning details are now part of this conversation.');
         })}>Use latest quiz & details</button><button className={css.textButton} disabled={busy} onClick={() => { accept(wedding); setIncomingBrief(null); }}>Keep this conversation’s brief</button></div>
       </div>}
-      {loading ? <p role="status">Opening your wedding space…</p> : !wedding ? <section className={css.welcome}>
+      {loading && <p role="status">Reopening your saved conversation…</p>}
+      {!wedding ? <section className={css.welcome}>
         <span className={css.mark}><Heart size={25} /></span><h2>A conversation, with room to explore.</h2>
         <p>{localBrief ? `We can bring ${localBrief.names || 'your'} saved wedding vision into this conversation, including every feeling, world, colour story and signature you kept.` : 'Start with what you know—even if it’s just a feeling. We’ll build your brief as you talk.'}</p>
         <p className={css.small}>Starting saves your brief with your planner. Chat shares your brief and recent conversation with our AI service when connected. No vendors are contacted.</p>
-        <button className={css.primary} disabled={busy} onClick={() => void start(!!localBrief)}>{busy ? 'Opening…' : localBrief ? 'Continue with our wedding vision' : 'Start our conversation'}<Sparkles size={16} /></button>
+        <button className={css.primary} disabled={busy||loading} onClick={() => void start(!!localBrief)}>{busy ? 'Opening…' : localBrief ? 'Continue with our wedding vision' : 'Start our conversation'}<Sparkles size={16} /></button>
         {localBrief && <button className={css.textButton} disabled={busy} onClick={() => void start(false)}>Start with a blank brief instead</button>}
         {session && <button className={css.textButton} disabled={busy} onClick={() => void perform(() => refresh(session))}>Try reopening our conversation</button>}
       </section> : <div className={css.grid}>

@@ -7,7 +7,7 @@ from typing import Optional
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from openai import APIError, APITimeoutError
 from anthropic import APIError as ClaudeAPIError, APITimeoutError as ClaudeTimeoutError
 from pydantic import ValidationError
@@ -31,10 +31,23 @@ def create_app(database_path=None, agent=None, messaging_settings=None, messagin
     owned_agent = agent is None
     if agent is None:
         agent = configured_agent()
-    path = Path(database_path or os.getenv("DATABASE_PATH", "data/weddings.sqlite3"))
-    if not path.is_absolute():
-        path = ROOT / path
-    store = Store(path)
+    shared_url = os.getenv('DATABASE_URL') or os.getenv('POSTGRES_URL')
+    if os.getenv('VERCEL') and database_path is None and not shared_url:
+        setup = FastAPI(title='Ever After — database setup required')
+        @setup.api_route('/{path:path}', methods=['GET', 'POST', 'PATCH', 'PUT', 'DELETE'])
+        def database_required(path: str):
+            return JSONResponse(status_code=503, content={'detail': {
+                'code':'database_not_configured',
+                'message':'Connect a PostgreSQL database in Vercel Storage and configure DATABASE_URL for the backend service. Wedding records require shared persistent storage.'}})
+        return setup
+    target = database_path or shared_url or os.getenv("DATABASE_PATH", "data/weddings.sqlite3")
+    if str(target).startswith(('postgres://', 'postgresql://')):
+        store = Store(target)
+    else:
+        path = Path(target)
+        if not path.is_absolute():
+            path = ROOT / path
+        store = Store(path)
     messaging = LiveMessaging(store, agent, messaging_settings, messaging_transport)
 
     @asynccontextmanager

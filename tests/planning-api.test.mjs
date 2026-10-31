@@ -39,3 +39,30 @@ test('network failure keeps a retryable error separate from a server validation 
   t.mock.method(globalThis,'fetch',async () => { throw new TypeError('Failed to fetch'); });
   await assert.rejects(planningRequest('/health'), error => error.status === 0 && error.message.includes('unsaved edits are still here'));
 });
+
+test('lost wedding is distinguishable from a broken route', async t => {
+  t.mock.method(globalThis,'fetch',async()=>new Response(JSON.stringify({detail:{code:'wedding_not_found'}}),{status:404}));
+  await assert.rejects(planningRequest('/api/weddings/old'), e=>e.code==='wedding_not_found'&&e.message.includes('saved wedding vision'));
+});
+test('missing backend binding is not misreported as missing AI configuration',async t=>{
+  t.mock.method(globalThis,'fetch',async()=>new Response(JSON.stringify({detail:'The backend service binding is unavailable.'}),{status:503}));
+  await assert.rejects(planningRequest('/health'),e=>e.status===503&&!e.message.includes('edit and save')&&e.message.includes('planning service'));
+});
+test('an HTML deployment response never counts as successful wedding creation',async t=>{
+  t.mock.method(globalThis,'fetch',async()=>new Response('<html>Not found</html>',{status:200}));
+  await assert.rejects(planningRequest('/api/weddings',null,{brief}),e=>e.code==='invalid_backend_response');
+});
+
+test('readiness checks can use a shorter timeout than AI chat requests',async t=>{
+  t.mock.method(globalThis,'fetch',async(_url,options)=>new Promise((_resolve,reject)=>{
+    options.signal.addEventListener('abort',()=>reject(new DOMException('Aborted','AbortError')),{once:true});
+  }));
+  const start=Date.now();
+  await assert.rejects(planningRequest('/health',null,undefined,'GET',20),e=>e.status===0);
+  assert.ok(Date.now()-start<1000);
+});
+
+test('missing durable storage explains the actual Vercel setup step',async t=>{
+  t.mock.method(globalThis,'fetch',async()=>new Response(JSON.stringify({detail:{code:'database_not_configured'}}),{status:503}));
+  await assert.rejects(planningRequest('/health'),e=>e.code==='database_not_configured'&&e.message.includes('PostgreSQL')&&e.message.includes('DATABASE_URL'));
+});

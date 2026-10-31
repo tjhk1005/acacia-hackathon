@@ -1112,7 +1112,35 @@ h2 {
   .brand {
     font-size:29px
   }
-  .sidebar-caption,.workspace-label,.sidebar nav,.sidebar-note {
+  .sidebar-caption,.workspace-label,.sidebar-note {
+    display:none
+  }
+  .sidebar {
+    flex-wrap:wrap
+  }
+  .sidebar .brand {
+    order:1
+  }
+  .sidebar .profile {
+    order:2;
+    margin-left:auto
+  }
+  .sidebar nav {
+    display:flex;
+    flex-direction:row;
+    flex-wrap:wrap;
+    flex-basis:100%;
+    order:3;
+    gap:6px;
+    margin-top:14px
+  }
+  .sidebar nav .nav-item {
+    min-height:42px;
+    padding:8px 10px;
+    font-size:11px;
+    white-space:nowrap
+  }
+  .sidebar nav .nav-hint {
     display:none
   }
   .profile {

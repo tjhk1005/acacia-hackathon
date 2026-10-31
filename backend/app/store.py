@@ -20,7 +20,9 @@ def now():
 class Store:
     def __init__(self, path):
         self.path = str(path)
-        Path(self.path).parent.mkdir(parents=True, exist_ok=True)
+        self.is_postgres = self.path.startswith(('postgres://', 'postgresql://'))
+        if not self.is_postgres:
+            Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         with self.connection() as db:
             db.executescript("""
                 PRAGMA journal_mode=WAL;
@@ -65,6 +67,11 @@ class Store:
 
     @contextmanager
     def connection(self):
+        if self.is_postgres:
+            from .postgres import connection
+            with connection(self.path) as db:
+                yield db
+            return
         db = sqlite3.connect(self.path, timeout=10)
         db.row_factory = sqlite3.Row
         db.execute("PRAGMA foreign_keys=ON")
@@ -87,7 +94,7 @@ class Store:
             row = db.execute("SELECT * FROM weddings WHERE id=?", (wedding_id,)).fetchone()
         digest = hashlib.sha256((token or "").encode()).hexdigest()
         if not row or not secrets.compare_digest(row["token_hash"], digest):
-            raise HTTPException(404, "Wedding not found or access token is invalid")
+            raise HTTPException(404, {"code":"wedding_not_found", "message":"Wedding not found or access token is invalid"})
         return row
 
     def history(self, wedding_id, limit=100):

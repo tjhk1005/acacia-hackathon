@@ -1,5 +1,7 @@
 # Ever After
 
+**Release 0.2.0:** Vercel multi-service routing and shared PostgreSQL storage support. For Vercel, connect a PostgreSQL database and configure `DATABASE_URL` for the backend service before testing saved weddings. See [deployment instructions](VERCEL.md).
+
 **An AI wedding planning guide that helps a couple turn a feeling into a concrete wedding plan, compare real vendor options, and coordinate the work that follows.**
 
 Built for the Acacia hackathon in Singapore. The aim is to make the administrative parts of wedding planning more affordable and less stressful: discovering preferences, sourcing vendors, collecting quotes, comparing options, following up and handling changes.
